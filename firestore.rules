@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      function owner() { return request.auth != null && request.auth.uid == userId; }
+      function validData() {
+        let d = request.resource.data;
+        return d._syncSchema == 1 && d._syncRevision is int && d._syncRevision >= 1
+          && d._accountDeleted is bool && d._recentMutations is list && d._recentMutations.size() <= 200
+          && d.shifts is list && d.expenses is list && d.employerProfiles is list
+          && d.deductions is list && d.actualPayments is list && d.recurringExpenses is list;
+      }
+      function emptyRecords() {
+        let d = request.resource.data;
+        return d.shifts.size() == 0 && d.expenses.size() == 0 && d.employerProfiles.size() == 0
+          && d.deductions.size() == 0 && d.actualPayments.size() == 0 && d.recurringExpenses.size() == 0;
+      }
+      function deletionMarker() {
+        return !request.resource.data._accountDeleted
+          || (emptyRecords() && request.resource.data._deletionToken is string);
+      }
+      function rollbackOwnDeletion() {
+        // Only the device that prepared deletion can restore its saved snapshot, and
+        // only with a fresh sign-in. Old cached writes cannot resurrect a deleted account.
+        return !request.resource.data._accountDeleted
+          && resource.data._deletionToken == request.resource.data._deletionToken
+          && request.auth.token.auth_time > request.time.toMillis() / 1000 - 300;
+      }
+      allow read: if owner();
+      // On simultaneous first creation, server increments can already be greater than 1.
+      // The transaction read precondition, rather than an exact initial counter, retries it.
+      allow create: if owner() && validData() && deletionMarker();
+      allow update: if owner() && validData()
+        && request.resource.data._syncRevision == resource.data.get('_syncRevision', 0) + 1
+        && ((!resource.data.get('_accountDeleted', false) && deletionMarker())
+          || (resource.data.get('_accountDeleted', false) && rollbackOwnDeletion()));
+      // Retain the empty marker under the old UID to reject writes from stale sessions.
+      // Auth deletion removes the login; the six personal-data arrays are already empty.
+      allow delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

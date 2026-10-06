@@ -1,0 +1,690 @@
+/* Static UI chrome: buttons, titles, section headers, help text. Dynamic content built from
+   string interpolation (employer names, categories chosen from a fixed Japanese list, dates)
+   is not covered by this pass and stays in Japanese regardless of language setting. */
+
+"Appleログインに失敗しました。" = "Sign in with Apple failed.";
+"Googleログインに失敗しました。" = "Google sign-in failed.";
+"この勤務先のデフォルト値" = "Default values for this employer";
+"この日のシフトはありません。" = "No shifts on this day.";
+"この日の合計" = "Total for this day";
+"このテンプレートを非表示" = "Hide this template";
+"この日は法定休日として計算する" = "Treat this day as a statutory holiday";
+"この月のシフト一覧" = "This month's shifts";
+"この月のシフト記録がありません。" = "No shift records this month.";
+"この月に支給予定の勤務先はありません。" = "No employer has pay expected this month.";
+"この月の控除はまだありません。" = "No deductions yet this month.";
+"この月の支出" = "This month's expenses";
+"この月の記録はまだありません。下のタブから追加してください。" = "No records yet this month. Add one from the tabs below.";
+"その他" = "Other";
+"その他手当" = "Other allowance";
+"その他手当(円)" = "Other allowance (¥)";
+"その他控除" = "Other deduction";
+"または" = "or";
+"まだ記録がありません。" = "No records yet.";
+"まもなくシフト開始" = "Shift starting soon";
+"アカウント" = "Account";
+"アカウントを作成" = "Create Account";
+"カテゴリ" = "Category";
+"キャンセル" = "Cancel";
+"サブスクや家賃など、毎月自動で発生する支出を登録できます" = "Register subscriptions, rent, and other expenses that occur automatically every month";
+"サブスクや家賃など、毎月自動で発生する支出を登録できます。" = "Register subscriptions, rent, and other expenses that occur automatically every month.";
+"シフト" = "Shifts";
+"シフトを削除しました" = "Shift deleted";
+"シフトを更新しました" = "Shift updated";
+"シフトを編集" = "Edit Shift";
+"シフトを追加" = "Add Shift";
+"シフトを追加しました" = "Shift added";
+"シフトビルダー" = "Shift Builder";
+"シフト追加時にこの勤務先名を入力すると、ここで設定した値が自動的に入ります。" = "When you type this employer's name while adding a shift, these values will be filled in automatically.";
+"タップで詳細を表示・「追加」から記録できます" = "Tap for details · use \"Add\" to record";
+"ナイト" = "Night";
+"パスワード(6文字以上)" = "Password (6+ characters)";
+"パスワードを変更" = "Change Password";
+"パスワードを変更しました" = "Password changed";
+"パスワードを忘れた場合" = "Forgot your password?";
+"パスワード再設定メールを送信しました。" = "Password reset email sent.";
+"メモ(任意)" = "Memo (optional)";
+"メールアドレス" = "Email";
+"ライト" = "Light";
+"ログアウト" = "Log Out";
+"ログアウトしますか?" = "Log out?";
+"ログイン" = "Log In";
+"ログインはこちら" = "Already have an account? Log in";
+"乙欄" = "Otsu";
+"乙欄(掛け持ち先)" = "Otsu (side job)";
+"交通費" = "Transportation";
+"交通費(円)" = "Transportation (¥)";
+"今回の給与予測" = "This period's estimated pay";
+"今月の差引残高" = "This month's net balance";
+"今月の支給額" = "This Month's Pay";
+"休憩" = "Break";
+"休憩時間" = "Break time";
+"休憩時間を指定する" = "Specify break time";
+"例:Netflix" = "e.g. Netflix";
+"例:カフェ○○" = "e.g. Cafe ABC";
+"保存" = "Save";
+"停止中" = "Paused";
+"健康保険・厚生年金・雇用保険・所得税・住民税はそれぞれ独立した項目として管理します。実際の給与明細を優先してください。" = "Health insurance, pension, employment insurance, income tax, and resident tax are each tracked separately. Defer to your actual pay slip when in doubt.";
+"健康保険料" = "Health insurance";
+"入力する" = "Enter";
+"円" = "yen";
+"前営業日に繰り上げ" = "Move to previous business day";
+"割増率" = "Premium Rates";
+"勤務先" = "Employer";
+"勤務先ごとに自動計算・国税庁の税額表に基づく" = "Auto-calculated per employer, based on the National Tax Agency's tax tables";
+"勤務先の管理" = "Manage Employers";
+"勤務先はまだ登録されていません" = "No employers registered yet";
+"勤務先を入力してください" = "Please enter an employer";
+"勤務先を編集" = "Edit Employer";
+"勤務先を追加" = "Add Employer";
+"勤務先別の給与" = "Pay by Employer";
+"勤務先名を入力してください" = "Please enter an employer name";
+"勤務時間" = "Work Hours";
+"厚生年金保険料" = "Employee pension";
+"名称を入力してください" = "Please enter a name";
+"土" = "Sat";
+"基本給" = "Base pay";
+"変更" = "Change";
+"夜勤明けに開くならナイトの方が目に負担がかかりません。" = "If you're opening this after a night shift, Night mode is easier on your eyes.";
+"娯楽" = "Entertainment";
+"サブスク" = "Subscription";
+"サブスク管理" = "Manage Subscriptions";
+"サブスクはまだ登録されていません" = "No subscriptions registered yet";
+"サブスクを編集" = "Edit Subscription";
+"サブスクを追加" = "Add Subscription";
+"下の3つはタップして追加するまで概算額が表示されるだけで、手取り予測にはまだ反映されません。" = "The three below only show an estimate until you tap to add them — they aren't reflected in the net pay forecast yet.";
+"実際に振り込まれた手取り額" = "Actual amount received";
+"実際の手取り額を記録しましょう" = "Record what you actually received";
+"実績" = "Actual";
+"受け取った給与" = "Pay Received";
+"家賃・光熱" = "Rent & Utilities";
+"対象のシフトはありません。" = "No matching shifts.";
+"所定内残業" = "Regular overtime";
+"所定内残業(割増なし)" = "Regular overtime (no premium)";
+"所定労働時間(h)" = "Scheduled hours (h)";
+"所定労働時間(h/日)" = "Scheduled hours (h/day)";
+"所得税(源泉徴収)" = "Income Tax (Withholding)";
+"所得税(源泉徴収)の内訳" = "Income Tax (Withholding) Breakdown";
+"所得税合計" = "Total Income Tax";
+"手入力で追加" = "Add manually";
+"手取り" = "Net Pay";
+"手取り予測" = "Estimated Net Pay";
+"手当" = "Allowance";
+"推定" = "Estimated";
+"控除" = "Deductions";
+"控除(概算・参考値)" = "Deductions (Estimate / Reference)";
+"控除を追加" = "Add Deduction";
+"控除合計" = "Total Deductions";
+"支出" = "Expenses";
+"支出を追加" = "Add Expense";
+"支出カテゴリ別" = "Expenses by Category";
+"支給日" = "Payday";
+"支給月" = "Payment Month";
+"新しいパスワード(6文字以上)" = "New password (6+ characters)";
+"新しいパスワード(確認)" = "New password (confirm)";
+"新しいパスワードが一致しません。" = "New passwords don't match.";
+"新規登録" = "Sign Up";
+"日" = "Sun";
+"日付" = "Date";
+"日用品" = "Daily necessities";
+"時給" = "Hourly wage";
+"時給(円)" = "Hourly wage (¥)";
+"時間帯を追加(時給が変わる場合)" = "Add a time block (if the hourly wage changes)";
+"更新" = "Update";
+"月" = "Mon";
+"有効" = "Active";
+"木" = "Thu";
+"未設定" = "Not set";
+"末日" = "Last day";
+"概要" = "Overview";
+"残業割増率(%)" = "Overtime premium (%)";
+"毎月この日になると、自動的に支出として記録されます。" = "On this day each month, it's automatically recorded as an expense.";
+"水" = "Wed";
+"法定休日" = "Statutory Holiday";
+"法定休日割増" = "Statutory holiday premium";
+"法定休日割増率(%)" = "Statutory holiday premium (%)";
+"法定休日労働" = "Statutory holiday work";
+"法定時間外(残業)割増" = "Legal overtime premium";
+"法定時間外労働" = "Legal overtime work";
+"法定残業" = "Legal overtime";
+"深夜" = "Late night";
+"深夜割増" = "Late-night premium";
+"深夜割増率(%)" = "Late-night premium (%)";
+"深夜労働" = "Late-night work";
+"火" = "Tue";
+"現在のパスワード" = "Current password";
+"甲欄" = "Kou";
+"甲欄(メインの勤務先)" = "Kou (main employer)";
+"発生日" = "Charge day";
+"登録すると、シフト追加時に時給などが自動入力されます。" = "Once registered, values like the hourly wage will be filled in automatically when you add a shift.";
+"税額表の区分" = "Tax Table Category";
+"終了" = "End";
+"給与" = "Pay";
+"給与の支給予定" = "Upcoming Payday";
+"給与の締め日・支給日" = "Closing Date & Payday";
+"給与明細(支給)" = "Pay Slip (Gross)";
+"給与明細の詳細" = "Pay Slip Details";
+"給与明細の詳細を見る" = "View Pay Slip Details";
+"給料を記録" = "Record Pay";
+"給料日" = "Payday";
+"給料日です" = "It's payday";
+"給料日を設定" = "Set Payday";
+"給料日を編集" = "Edit Payday";
+"総支給" = "Gross Pay";
+"総支給額" = "Gross Pay Amount";
+"締め日" = "Closing Date";
+"締め日と同じ月" = "Same month as closing date";
+"翌々月" = "Month after next";
+"翌営業日に繰り下げ" = "Move to next business day";
+"翌月" = "Next month";
+"見た目" = "Appearance";
+"設定" = "Settings";
+"設定すると、給与タブにこの勤務先の支給予定が表示されるようになります。" = "Once set, this employer's expected payday will appear on the Wage tab.";
+"詳細を見る" = "View Details";
+"詳細設定(今回だけ変更)" = "Advanced settings (change for this entry only)";
+"調整しない" = "Don't adjust";
+"追加" = "Add";
+"通信費" = "Communication";
+"通常労働" = "Regular work";
+"通知" = "Notifications";
+"通知はまだありません" = "No notifications yet";
+"週40時間(法定)を超えた分は、勤務先ごとに集計して自動的に法定時間外として給与に反映されています。" = "Hours beyond the legal 40-hour week are totaled per employer and automatically reflected in pay as legal overtime.";
+"週ごとの労働時間" = "Weekly Hours";
+"金" = "Fri";
+"金額(円)" = "Amount (¥)";
+"金額を入力してください" = "Please enter an amount";
+"閉じる" = "Close";
+"開始" = "Start";
+"雇用保険料" = "Employment insurance";
+"雇用形態" = "Employment Type";
+"食費" = "Food";
+
+/* Interpolated Text() literals — Swift/SwiftUI turns each interpolated segment into a %@
+   placeholder when building the LocalizedStringKey, so the key here is the literal text with
+   %@ standing in for each `\(...)` in the original call. */
+"収入 %@・支出 %@" = "Income %@ · Expenses %@";
+"%@：給料日になりました" = "%@: it's payday";
+"・時給" = "・Hourly wage ";
+"・末日に発生" = "・on the last day of the month";
+"%@〜%@分" = "%@–%@";
+
+/* Category / employment-type names — these are picker choices that also get stored verbatim
+   as the underlying data value (Expense.category, EmployerProfile.employmentType, Deduction
+   category), so the Japanese string stays the source of truth; only the on-screen label is
+   translated, via Text(LocalizedStringKey(value)) at each display site. */
+"アルバイト" = "Part-time Job";
+"パート" = "Part-timer";
+"契約社員" = "Contract Employee";
+"正社員" = "Full-time Employee";
+"所得税" = "Income Tax";
+"住民税" = "Resident Tax";
+
+"下の3つはタップして追加するまで手取り予測に反映されません。" = "The three below aren't reflected in the net pay forecast until you tap to add them.";
+"毎月自動で発生する支出を登録できます" = "Register expenses that recur every month";
+"%lld件登録中" = "%lld registered";
+
+/* Income walls (年収の壁) */
+"親などの扶養に入っている" = "Dependent of a parent or relative";
+"配偶者の扶養に入っている" = "Dependent of a spouse";
+"扶養に入っていない" = "Not a dependent";
+"設定する" = "Set Up";
+"年末見込み" = "Year-end estimate";
+"扶養の状況" = "Dependent status";
+"選択してください" = "Select";
+"生年月日を入力" = "Enter Date of Birth";
+"生年月日" = "Date of birth";
+"あなたの状況" = "Your Situation";
+"年齢によって当てはまる壁が変わるため、扶養に入っている場合は生年月日が必要です。この情報は端末内にのみ保存され、外部には送信されません。" = "Which thresholds apply depends on your age, so a date of birth is needed if you're a dependent. It is stored only on this device and never sent anywhere.";
+"支給済み" = "Already paid";
+"入力済みのシフト(今後の支給)" = "Entered shifts (paid later)";
+"未入力分の見込み" = "Estimate for days not entered";
+"税金の年収は、働いた日ではなく給料の支給日で数えます。12月に働いて翌年1月に支給される分は翌年に入ります。交通費は含めていません。未入力分は直近の働き方のペースで見込んでいます。" = "For tax, income counts by payday, not by the day worked: work done in December and paid in January belongs to the next year. Transportation allowances are excluded. Days not yet entered are estimated from your recent pace.";
+"給料日が未設定の勤務先があります。働いた月の月末に支給されるとして数えています。給与タブで給料日を設定すると正確になります。" = "Some employers have no payday set, so their pay is counted as paid at the end of the month worked. Set a payday in the Pay tab for accurate figures.";
+"記録がまだ少ないため、見込みは目安です。" = "There isn't much history yet, so the estimate is only a rough guide.";
+"壁" = "Thresholds";
+"本人の所得税" = "Your income tax";
+"扶養している人の扶養控除" = "Deduction for whoever supports you";
+"配偶者の控除が下がる" = "Spouse deduction drops";
+"配偶者の控除が減り始める" = "Spouse deduction starts shrinking";
+"配偶者の控除がなくなる" = "Spouse deduction ends";
+"健康保険の扶養" = "Health insurance dependency";
+"すでに超えています" = "Already over";
+"働いた記録がないため、まだ見込みを出せません。" = "No work history yet, so there's no estimate.";
+"ご注意" = "Notes";
+"金額は概算です。実際の判定は勤務先・健康保険組合・税務署が行います。" = "Figures are estimates. The actual determination is made by your employer, health insurer and the tax office.";
+"住民税は自治体によって基準が異なるため、ここでは扱っていません。" = "Resident tax thresholds vary by municipality and aren't covered here.";
+"賞与は記録できないため含まれていません。" = "Bonuses can't be recorded and aren't included.";
+"勤務先の規模や労働時間によっては、扶養に関係なく勤務先の社会保険に加入となる場合があります。" = "Depending on the size of your employer and your hours, you may be enrolled in your employer's social insurance regardless of dependent status.";
+"休憩(開始時刻なし)の差し引き" = "Break deduction (no start time)";
+
+/* Support section */
+"サポート" = "Support";
+"お問い合わせ" = "Contact Us";
+"プライバシーポリシー" = "Privacy Policy";
+"バージョン" = "Version";
+"メールアドレスをコピー" = "Copy Email Address";
+"メールアドレスをコピーしました" = "Email Address Copied";
+"メールアプリが設定されていないようです。お使いのメールから %@ 宛てにお送りください。" = "No mail app seems to be set up. Please write to %@ from your email.";
+
+/* Overtime beyond 60h/month (50% premium) */
+"月60h超" = "60h+/mo";
+"うち月60時間超(5割増)" = "of which over 60h/month (+50%)";
+
+/* Destructive confirmations */
+"このシフトを削除しますか?" = "Delete this shift?";
+"この支出を削除しますか?" = "Delete this expense?";
+"削除" = "Delete";
+
+/* Empty state */
+"この月の記録はまだありません" = "No records this month yet";
+"「シフト」タブでカレンダーの日付を選ぶと、勤務を記録できます。" = "Pick a date on the calendar in the Shifts tab to record a shift.";
+
+/* VoiceOver labels */
+"前の月" = "Previous month";
+"次の月" = "Next month";
+"シフトを削除" = "Delete shift";
+"支出を削除" = "Delete expense";
+"シフトなし" = "No shifts";
+
+/* Shift templates (quick add) */
+"テンプレート" = "Templates";
+"タップでこの日に追加" = "Tap to add to this day";
+"追加済み" = "Added";
+
+/* Language setting (new) */
+"言語" = "Language";
+"システムに合わせる" = "Match System";
+"日本語" = "Japanese";
+"English" = "English";
+
+/* Income walls — revised (2026-09 audit) */
+"年収の壁 %@年" = "Income Thresholds %@";
+"この年の壁の金額には対応していません。" = "Income thresholds for this year aren't supported.";
+"扶養の状況を設定すると、%@年にあといくら働けるかが分かります。" = "Set your dependent status to see how much more you can earn in %@.";
+"生年月日を入力すると、%@年にあといくら働けるかが分かります。" = "Enter your date of birth to see how much more you can earn in %@.";
+"年収(確定)" = "Income (final)";
+"年収(確定見込み)" = "Income (settled, not yet all paid)";
+"%@を超えました" = "Over %@";
+"%@まで残り%@" = "%2$@ below %1$@";
+"次の壁%@まで、あと%@(約%lld時間)" = "%2$@ (about %3$lld hours) to the next threshold, %1$@";
+"次の壁%@まで、あと%@" = "%2$@ to the next threshold, %1$@";
+"%@の支給で%@を超えます" = "Goes over %2$@ with the %1$@ pay";
+"このペースだと%@の支給で%@を超える見込みです(記録が少ないため目安)" = "At this pace, likely over %2$@ with the %1$@ pay (rough guide: little history yet)";
+"このペースだと%@の支給で%@を超える見込みです" = "At this pace, likely over %2$@ with the %1$@ pay";
+"%@を超える見込みです" = "Likely over %@";
+"健康保険の扶養: 今の年間見込み%@ / %@未満(記録が少ないため目安)" = "Health insurance: current yearly estimate %1$@ / under %2$@ (rough guide: little history yet)";
+"健康保険の扶養: 今の年間見込み%@ / %@未満" = "Health insurance: current yearly estimate %1$@ / under %2$@";
+"%@年12月31日時点で%lld歳" = "Age %2$lld on Dec 31, %1$@";
+"生年月日を削除" = "Delete Date of Birth";
+"決定" = "Done";
+"%@年の年収(税金の計算)" = "%@ Income (for tax)";
+"%@年の年収に入るのは、%@までの勤務です。" = "Work up to %2$@ counts toward %1$@ income.";
+"%@年の支給に入る勤務はすでに終わっています。" = "All work paid in %@ is already done.";
+"%@以下" = "%@ or less";
+"%@未満" = "Under %@";
+"残り%@" = "%@ left";
+"あと%@(約%lld時間)働けます" = "You can earn %1$@ more (about %2$lld hours)";
+"あと%@働けます" = "You can earn %@ more";
+"今の年間見込み%@" = "Current yearly estimate %@";
+"記録が4週間分たまるまでは目安です。" = "This is a rough guide until you have four weeks of history.";
+"月あたり%@以下が目安です" = "Aim for %@ or less a month";
+"直近90日(勤務を始めて90日未満ならその日から)の収入を、交通費を含めて1年分に換算しています。" = "Based on your pay over the last 90 days (or since you started, if sooner), including transportation, scaled to a year.";
+"%@の支給で超えます" = "Goes over with the %@ pay";
+"超えます" = "Goes over";
+"このペースだと%@の支給で超える見込み(記録が少ないため目安)" = "At this pace, likely over with the %@ pay (rough guide: little history yet)";
+"このペースだと%@の支給で超える見込み" = "At this pace, likely over with the %@ pay";
+"このペースだと超える見込み" = "At this pace, likely over";
+"超えた分に対して所得税がかかります。" = "Income tax applies only to the part above it.";
+"%@までの勤務を約%lld時間(%@)減らすと収まる見込みです" = "Working about %2$lld fewer hours (%3$@) through %1$@ should keep you under";
+"%@までの勤務を%@分減らすと収まる見込みです" = "Earning %2$@ less from work through %1$@ should keep you under";
+"すでに働いた分だけで超える見込みです。" = "Work already done is enough to go over.";
+"扶養している人の控除が減り始める" = "Supporter's deduction starts shrinking";
+"扶養している人の控除がなくなる" = "Supporter's deduction ends";
+"社会保険料などの控除がない場合、この金額を超えると所得税がかかり始めます。社会保険料を払っている人は、その分だけかかり始める金額が高くなります。" = "With no other deductions such as social insurance, income tax starts above this amount. If you pay social insurance premiums, the point where tax starts is higher by that much.";
+"超えると、あなたを扶養している人の扶養控除がなくなり、その人の税金が増えます。" = "Above this, the person who supports you loses their dependent deduction and pays more tax.";
+"19〜22歳の特例により、ここまでは扶養している人の控除(63万円)が満額のままです。超えると段階的に減ります。" = "Under the rule for ages 19–22, your supporter keeps the full ¥630,000 deduction up to here. Above it, the deduction shrinks step by step.";
+"超えると、扶養している人の控除(特定親族特別控除)がなくなります。" = "Above this, your supporter's deduction (special deduction for specified relatives) ends.";
+"過去の実績ではなく、今後1年間の収入見込み(交通費を含み、通常は残業代も含む)で判定されます。この金額以上になると家族の健康保険の扶養から外れ、ご自身で健康保険に加入する必要があります。" = "This is judged on expected income for the next 12 months, not past earnings (transportation included, and usually overtime too). At or above this amount you leave your family's health insurance and must get your own.";
+"過去の実績ではなく、今後1年間の収入見込み(交通費を含み、通常は残業代も含む)で判定されます。この金額以上になると配偶者の健康保険の扶養から外れます。配偶者が会社員・公務員の場合は国民年金の第3号被保険者からも外れるため、ご自身で健康保険と国民年金に加入する必要があります。" = "This is judged on expected income for the next 12 months, not past earnings (transportation included, and usually overtime too). At or above this amount you leave your spouse's health insurance. If your spouse is a company or government employee, you also lose Category 3 National Pension status, so you must join health insurance and the National Pension yourself.";
+"過去の実績ではなく、今後1年間の収入見込み(交通費を含み、通常は残業代も含む)で判定されます。この金額以上になると配偶者の健康保険の扶養から外れ、ご自身で健康保険に加入する必要があります。" = "This is judged on expected income for the next 12 months, not past earnings (transportation included, and usually overtime too). At or above this amount you leave your spouse's health insurance and must get your own.";
+"16歳未満のため、扶養している人の所得税の扶養控除はもともとありません。" = "You're under 16, so your supporter gets no income-tax dependent deduction for you at any income.";
+"75歳以上は後期高齢者医療制度に加入するため、健康保険の扶養には入れません。" = "From age 75 everyone joins the Late-Stage Elderly Medical Care System, so you can't be a health insurance dependent.";
+"本人の所得税の178万円は、基礎控除と給与所得控除だけで計算した目安です。社会保険料控除などがあると、実際に所得税がかかり始める金額はその分高くなります。" = "The ¥1.78 million for your own income tax counts only the basic deduction and the employment income deduction. Other deductions, such as for social insurance premiums, raise the point where tax actually starts.";
+"交通費は非課税として除いています。車・自転車通勤の手当は、距離に応じた上限を超える分が課税されます。" = "Transportation allowances are treated as tax-free and excluded. For car or bicycle commuting, any amount above the distance-based limit is taxable.";
+"健康保険の扶養は、扶養する人が勤務先の健康保険(協会けんぽ・健康保険組合・共済組合)に入っている場合の基準です。国民健康保険には扶養の仕組みはありません。" = "These health insurance rules apply when your supporter is in workplace health insurance (Kyokai Kenpo, a health insurance society or a mutual aid association). National Health Insurance has no dependents.";
+"人手不足による残業などで一時的に年収が基準を超えた場合は、勤務先の証明があれば、原則として連続2回まで扶養にとどまれます。" = "If your income goes over only temporarily, for example overtime due to staff shortages, a certificate from your employer lets you stay a dependent, in principle for up to two checks in a row.";
+"配偶者の控除額は相手の所得によって変わり、相手の所得が1,000万円を超えると控除は受けられません。" = "The spouse deduction amount depends on your partner's income: no deduction applies if their total income (after the employment income deduction) exceeds ¥10 million.";
+
+/* Withholding — revised (2026-09 audit) */
+"勤務先ごとに、その月の給与額(交通費を除く)に、支給日の年の国税庁の源泉徴収税額表を適用して計算しています。" = "For each employer, the month's pay (excluding transportation) is run through the National Tax Agency's withholding table for the year of the payday.";
+"%@年分の税額表には対応していないため、%@年分の税額表で計算した目安です。" = "The %1$@ table isn't supported, so this is an estimate using the %2$@ table.";
+"甲欄・課税対象 %@" = "Kou · taxable %@";
+"乙欄・課税対象 %@" = "Otsu · taxable %@";
+"給与明細の所得税(手入力)を使うため、自動計算は合計に含めていません" = "Using the income tax you entered from your payslip; the automatic figure isn't counted";
+"この月は給与明細の所得税(手入力)を使うため、この自動計算は控除合計に含めていません。" = "This month uses the income tax you entered from your payslip, so this automatic figure isn't included in total deductions.";
+"社会保険料は、甲欄の勤務先の給与から引かれたものとして計算しています。" = "Social insurance premiums are treated as deducted from your Kou (main) employer's pay.";
+"源泉控除対象配偶者がいる" = "Has a spouse counted for withholding";
+"扶養親族等の数(配偶者を除く): %lld人" = "Dependents (excluding spouse): %lld";
+"2つ以上掛け持ちしている場合、メイン以外は乙欄になります。乙欄は甲欄より税額が高く、扶養人数は反映されません。(「従たる給与についての扶養控除等申告書」を出している場合の減額には対応していません)" = "If you have two or more jobs, any job besides your main one uses Otsu. Otsu withholds more than Kou and doesn't reflect dependents. (The reduction for filing a secondary-employer dependents declaration isn't supported.)";
+"70歳以上の配偶者の控除(48万円)が、超えると配偶者特別控除(38万円)に下がります。" = "Above this, your spouse's deduction for a spouse aged 70+ (¥480,000) drops to the special spouse deduction (¥380,000).";
+"ここまでは配偶者の控除(38万円)が満額のままです。超えると段階的に減ります。" = "Your spouse keeps the full ¥380,000 deduction up to here. Above it, the deduction shrinks step by step.";
+"超えると、配偶者の控除(配偶者特別控除)がなくなります。" = "Above this, your spouse's deduction (special spouse deduction) ends.";
+"%@年の年収に入る勤務:" = "Work that counts toward %@ income:";
+"・%@: %@まで" = "• %1$@: through %2$@";
+"%@年の年収に入る勤務を約%lld時間(%@)減らすと収まる見込みです" = "Working about %2$lld fewer hours (%3$@) among the work that counts toward %1$@ should keep you under";
+"%@年の年収に入る勤務を%@分減らすと収まる見込みです" = "Earning %2$@ less from the work that counts toward %1$@ should keep you under";
+"このアプリに記録したシフトの給与だけで計算しています。記録していない勤務先の給与がある場合は、その分も判定に含まれます。" = "Only pay from shifts recorded in this app is counted. Pay from jobs you haven't recorded also counts toward these thresholds.";
+"税金の壁は、給与以外に課税される所得(老齢年金など)があると変わります。健康保険の扶養では、年金・失業給付・傷病手当金など非課税の収入も年収に含まれます。" = "Other taxable income (such as an old-age pension) changes the tax thresholds. For health insurance, non-taxable income such as pensions, unemployment benefits and sickness allowances also counts.";
+"健康保険の扶養は、原則として、同居の場合は扶養する人の年収の半分未満、別居の場合は扶養する人からの仕送り額未満であることも条件です。一定の障害(障害厚生年金を受けられる程度)のある方は180万円未満が基準です。" = "For health insurance, as a rule your income must also be less than half of your supporter's if you live together, or less than the support they send you if you live apart. For people with a qualifying disability (roughly the level for a disability employees' pension) the limit is under ¥1.8 million.";
+"2026年4月から、給与収入だけの場合で、労働条件通知書に勤務時間と賃金が明記されているときは、契約内容から見込まれる年収で判定されることがあります(契約で決まっていない残業代は含まれません)。ただし、「シフト制」などで勤務時間が明記されていない場合、契約期間が扶養に入る日から1年未満の場合、交通費などの手当の金額が書かれていない場合は、これまでどおり実際の収入見込みで判定されます。" = "From April 2026, if your only income is pay and your employment notice states fixed hours and wages, the income expected from the contract may be used instead (overtime not fixed in the contract is left out). But if hours aren't specified (e.g. \"shift-based\"), the contract runs for less than a year from the date you'd become a dependent, or allowances such as commuting pay have no stated amount, your actual expected income is used as before.";
+"税金の配偶者控除・配偶者特別控除は、法律上の配偶者だけが対象です。事実婚でも、健康保険の扶養(相手が会社員・公務員なら国民年金の第3号被保険者も)は法律上の配偶者と同じ扱いです。" = "The spouse tax deductions apply only to a legally married spouse. A common-law partner is treated like a legal spouse for health insurance dependent status (and, if the partner is an employee or civil servant, for National Pension Category 3).";
+
+/* Withholding & payday — revised (2026-09 review) */
+"給与タブの「給与の支給予定」と年収の壁の計算に使われます。多くの会社は繰り上げ(前倒し)払いです。年末年始(12月31日〜1月3日)は銀行が休みのため、営業日に含めていません。" = "Used for the Pay tab's upcoming paydays and for the income thresholds. Most companies pay early. Dec 31–Jan 3 are bank holidays, so they don't count as business days.";
+"土日祝・年末年始のため繰り上げ" = "Moved earlier (weekend, holiday or New Year break)";
+"土日祝・年末年始のため繰り下げ" = "Moved later (weekend, holiday or New Year break)";
+"支給日が土日祝・年末年始の場合" = "If payday falls on a weekend, holiday or Dec 31–Jan 3";
+"甲欄の勤務先がないため、社会保険料は勤務先ごとの給与額に応じて分けて計算しています。" = "With no Kou employer, social insurance premiums are split across employers in proportion to their pay.";
+"甲欄の勤務先の毎月の源泉徴収は仮の税額で、1年分はその勤務先の年末調整(通常は12月の給与)で精算されます。年の途中で退職して年内に再就職しない場合などは、確定申告で精算します(給与が少ない場合は退職時に年末調整されることもあります)。" = "Monthly withholding at your Kou employer is provisional; the year is settled in that employer's year-end adjustment (usually with December's pay). If you leave during the year and don't take another job that year, you settle it by filing a tax return (with low pay, the adjustment may be done when you leave).";
+"2025〜2027年は、基礎控除などの引き上げが毎月の税額表に十分反映されておらず、その差は甲欄の勤務先の年末調整で精算されます(多くの場合は還付)。" = "In 2025–2027, the increases in the basic and other deductions aren't fully reflected in the monthly tables; the difference is settled in your Kou employer's year-end adjustment (usually as a refund).";
+"甲欄は国税庁の電算機計算の特例で計算しています。勤務先が税額表で計算している場合は、百数十円程度(給与が高いと300円程度)の差が出ることがあります。" = "Kou uses the National Tax Agency's computerized calculation method. If your employer reads the printed table instead, results can differ by around ¥100–150 (about ¥300 at higher pay).";
+"乙欄の給与は年末調整されません。年末調整されなかった給与などが年20万円を超える場合は、原則として確定申告が必要です。申告が不要な場合も、確定申告で引かれすぎた税金が戻ることがあります。" = "Otsu pay never goes through the year-end adjustment. If pay not adjusted at year end and similar income exceed ¥200,000 a year, you generally must file a tax return. Even when you don't have to, filing can get back tax that was over-withheld.";
+"「給与所得者の扶養控除等申告書」を提出している勤務先(通常はメインの1箇所だけ)は甲欄です。申告書に書いた内容に合わせて入力してください。源泉控除対象配偶者は、あなたの所得が900万円以下で、配偶者の所得の見積額が95万円以下の場合です。扶養親族等の数に16歳未満の子は含めません。あなた自身が障害者・寡婦・ひとり親・勤労学生に当たる場合はそれぞれ1人を加え、申告書に障害者として書いた配偶者や扶養親族(16歳未満を含む)がいる場合は1人につき1人(同居特別障害者は2人)を加えます。迷ったら給与明細の扶養人数に合わせてください。" = "The employer you submitted your dependents declaration to (usually just your main job) uses Kou. Enter what you wrote on the declaration. A spouse counts for withholding if your income is ¥9 million or less and your spouse's expected income is ¥950,000 or less. Don't count children under 16. Add one for each that applies to you: disabled, widow, single parent or working student. Also add one for each spouse or dependent (including under-16s) listed as disabled on the declaration, or two if they are severely disabled and live with you. If unsure, match the number of dependents on your payslip.";
+
+"データを読み込めませんでした" = "Unable to load your data";
+"データを同期しています" = "Syncing your data";
+"履歴を保護するため、データの読み込みが終わるまで編集できません。通信環境を確認してください。" = "Editing will be available once your history is loaded. Check your connection.";
+"再読み込み" = "Reload";
+"勤務月ベースの収支" = "Balance by work month";
+"支出 %@・差引 %@" = "Expenses %@ · Balance %@";
+"金額の表示を切り替える" = "Toggle amount visibility";
+
+"ホーム" = "Home";
+
+"休憩%lld分" = "Break: %lld min";
+
+"ほか%lld件・詳細は給与タブへ" = "%lld more · See Pay for details";
+
+"この月の支給予定はまだありません" = "No payments scheduled this month";
+
+"Appleログインをキャンセルしました。" = "Apple sign-in was cancelled.";
+
+"Appleログインを完了できませんでした。端末のApple Accountとアプリの署名・設定を確認してください。メールまたはGoogleでもログインできます。" = "Apple sign-in could not be completed. Check the device Apple Account and app signing configuration. You can also use email or Google.";
+
+"メールアドレスの形式を確認してください。" = "Check the email address format.";
+
+"このメールアドレスは登録済みです。「ログインはこちら」からログインしてください。" = "This email is already registered. Choose Sign In instead.";
+
+"メールアドレスまたはパスワードが正しくありません。" = "The email address or password is incorrect.";
+
+"アカウントが見つかりません。先にメールアドレスで新規登録してください。" = "No account was found. Create an email account first.";
+
+"パスワードは6文字以上で入力してください。" = "Enter a password with at least 6 characters.";
+
+"通信できませんでした。インターネット接続を確認して、もう一度お試しください。" = "Check your internet connection and try again.";
+
+"このログイン方法は現在利用できません。アプリの認証設定を確認する必要があります。" = "This sign-in method is unavailable. The app authentication configuration needs to be checked.";
+
+"試行回数が多いため一時的に制限されています。少し待ってからお試しください。" = "Too many attempts. Wait a little and try again.";
+
+"メールで続けるには、メールアドレスとパスワードを入力してください。" = "To continue by email, enter your email address and password.";
+
+"端末に認証情報を保存できませんでした。アプリの署名設定を確認する必要があります。" = "Unable to save sign-in information on this device. The app signing configuration needs to be checked.";
+
+"シフトと給料日を、ひとつに。" = "Your shifts and paydays, together.";
+
+"シフトを記録する" = "Add a shift";
+
+"次のシフト" = "Next shift";
+
+"予測は控除前の支給額、実績は入力した手取り額です。" = "Estimates are before deductions; recorded payments are take-home amounts.";
+
+"勤務月" = "Work month";
+
+"収入 ••••・支出 ••••" = "Income •••• · Expenses ••••";
+
+"支出 ••••・差引 ••••" = "Expenses •••• · Balance ••••";
+
+"%@の支給で%@超の見込み" = "Expected to exceed %2$@ with the %1$@ payment";
+
+"基準超の見込み" = "Likely over the limit";
+
+"基準内の見込み" = "Likely within the limit";
+
+"年間目安%@・基準%@未満" = "Annual estimate %@ · Limit: below %@";
+
+"記録が少ないため、予測は目安です。" = "Limited records: treat forecasts as a guide.";
+
+"休憩時間(分)" = "Break duration (min)";
+"開始時刻を指定しない場合、休憩中の時給・深夜割増は概算です。" = "Without a start time, the wage and night premium deducted for breaks are estimates.";
+"数値を正しく入力してください。所定労働時間は0〜24時間です。" = "Enter valid numbers. Scheduled hours must be between 0 and 24.";
+"同じ名前の勤務先が登録されています。別の名前を入力してください。" = "An employer with this name already exists. Enter a different name.";
+"勤務時間を1つ以上入力してください" = "Enter at least one work period.";
+"休憩時間にマイナスの値は設定できません" = "Break duration cannot be negative.";
+
+/* Plus subscription and planning tools */
+"お金の計画" = "Money planning";
+"シフトの先にある、お金の予定まで。" = "Plan your money beyond your shifts.";
+"Plusは有効です" = "Plus is active";
+"残高予測" = "Balance forecast";
+"給料日と定期支出から、日ごとの残高を確認。7日分は無料。" = "See daily balances from paydays and recurring expenses. Seven days are free.";
+"シフトの収入比較" = "Compare shift income";
+"1回増やす・減らすと、月の給与がいくら変わるか比較。" = "Compare monthly pay with one shift added or removed.";
+"サブスクリプションを管理" = "Manage subscription";
+"Plusの内容を見る" = "Explore Plus";
+"購入を復元" = "Restore purchases";
+"Plusの購入はApple Accountに紐付きます。アプリのログアウトやアカウント削除では解約されません。" = "Plus is linked to your Apple Account. Logging out or deleting your app account does not cancel the subscription.";
+"来月の支払いも、次のシフトも。" = "Plan next month’s bills and your next shift.";
+"90日先までの残高予測" = "Forecast up to 90 days ahead";
+"給料日、家賃、サブスクなどをまとめて見通せます。" = "See paydays, rent, subscriptions, and more in one forecast.";
+"勤務を1回増減したときの給与差を、残業割増も含めて確認できます。" = "Compare pay with one shift added or removed, including overtime premiums.";
+"／月" = "/ month";
+"月額・自動更新。解約するまで毎月更新されます。" = "Monthly auto-renewable subscription. Renews each month until canceled.";
+"Plusを始める" = "Start Plus";
+"料金を読み込んでいます" = "Loading pricing";
+"商品情報を再読み込み" = "Reload subscription";
+"シフト入力、基本の給与計算、収支の記録は無料で使えます。" = "Shift entry, basic pay calculations, and income and expense records remain free.";
+"お支払いはApple Accountに請求されます。更新・解約はApp Storeのサブスクリプション管理から行えます。アプリのアカウント削除では解約されません。" = "Payment is charged to your Apple Account. Manage renewal or cancellation in App Store subscriptions. Deleting your app account does not cancel the subscription.";
+"利用規約" = "Terms of use";
+"無料プラン" = "Free plan";
+"これからのお金を見通す" = "Plan your upcoming money";
+"残高予測を7日分、無料で試せます。" = "Try a 7-day balance forecast for free.";
+"基準日" = "As of";
+"今日の残高（円）" = "Today’s balance (¥)";
+"例：30000" = "e.g. 30000";
+"予測期間" = "Forecast period";
+"7日・無料" = "7 days · Free";
+"90日・Plus" = "90 days · Plus";
+"残高を正しい金額で入力してください。" = "Enter a valid balance.";
+"今日の入出金を反映した残高を入力してください。予測は明日から始まります。入力した残高と見込み手取りは、この画面を閉じるとリセットされます。" = "Enter your balance after today’s transactions. The forecast starts tomorrow. Your balance and expected take-home inputs reset when you leave this screen.";
+"残高の見通し" = "Projected balance";
+"最終日の予測残高" = "Balance on the final day";
+"最小の日末残高" = "Lowest end-of-day balance";
+"残高不足が予測されています" = "A negative balance is forecast";
+"未調整の給与予測は控除前です。入金予定をタップして、見込み手取りに置き換えられます。" = "Unadjusted pay estimates are before deductions. Tap an expected payment to replace it with expected take-home pay.";
+"登録済みのシフト・支出・有効な定期支出だけを計算します。未入力の生活費や、同じ日の入出金の順序は反映していません。" = "Includes only registered shifts, expenses, and active recurring expenses. Unrecorded living costs and the order of same-day transactions are not included.";
+"給与の予測には勤務先の締め日・支払日が必要です。未設定の勤務先は給与予測に含まれません。" = "Pay estimates require employer closing dates and paydays. Employers without settings are excluded from estimated pay.";
+"この期間に登録された入出金予定はありません。" = "No registered transactions in this period.";
+"今日の残高を入力すると、給料日と支出予定から予測が表示されます。" = "Enter today’s balance to see a forecast based on paydays and scheduled expenses.";
+"Plusで90日先まで予測" = "Forecast 90 days with Plus";
+"完了" = "Done";
+"見込み手取り（円）" = "Expected take-home pay (¥)";
+"シフトからの給与予測に戻す" = "Use shift-based estimate";
+"この画面の予測だけに使います。実際の受取記録や保存済みのシフトは変更されません。" = "Only used in this forecast. Your actual payments and saved shifts are unchanged.";
+"見込み手取り" = "Expected take-home pay";
+"適用" = "Apply";
+"比較する内容" = "Comparison";
+"1回増やす" = "Add one shift";
+"1回減らす" = "Remove one shift";
+"比較するシフトがありません。「シフト」タブで勤務を記録してください。" = "No shifts to compare. Record a shift in the Shifts tab.";
+"使うシフト" = "Shift to copy";
+"外すシフト" = "Shift to remove";
+"仮の勤務日" = "Hypothetical work date";
+"選んだシフトの時給・休憩・手当を使って比較します。保存済みのシフトは変更されません。" = "Uses the selected shift’s wage, breaks, and allowances. Your saved shifts are unchanged.";
+"仮のシフトが登録済みの勤務時間と重なっています。別の日を選んでください。" = "The hypothetical shift overlaps a saved shift. Choose another date.";
+"この月の給与・控除前" = "Monthly pay · Before deductions";
+"現在の予定" = "Current plan";
+"比較した予定" = "Compared plan";
+"給与の差額" = "Pay difference";
+"勤務時間の差" = "Work time difference";
+"勤務月を基準に、すべてのシフトから残業・深夜・法定休日の割増を再計算します。税金・社会保険などの控除後の差額ではありません。" = "Uses the work month and recalculates overtime, night, and statutory holiday premiums across all shifts. The difference is before tax, insurance, and other deductions.";
+"給与予測・控除前" = "Estimated pay · Before deductions";
+"見込み手取り・入力値" = "Expected take-home · Entered";
+"受取実績" = "Actual payment";
+"登録済み支出" = "Registered expense";
+"定期支出の予定" = "Recurring expense forecast";
+"購入情報を確認できませんでした。時間をおいて再試行してください。" = "Could not verify the purchase. Please try again later.";
+"現在購入できません。商品情報を再読み込みするか、時間をおいてお試しください。" = "This subscription is currently unavailable. Reload or try again later.";
+"商品情報を読み込めませんでした。通信環境を確認してください。" = "Could not load subscription information. Check your connection.";
+"購入は承認待ちです。承認されるとPlusが有効になります。" = "Purchase is pending approval. Plus will activate once approved.";
+"購入を完了できませんでした。時間をおいて再試行してください。" = "Could not complete the purchase. Please try again later.";
+"Plusの購入を復元しました。" = "Your Plus purchase has been restored.";
+"有効なPlusの購入が見つかりませんでした。" = "No active Plus purchase was found.";
+"購入を復元できませんでした。Apple Accountと通信環境を確認してください。" = "Could not restore purchases. Check your Apple Account and connection.";
+"シフト・給与・支出などすべての記録が完全に削除されます。この操作は取り消せません。Plusの解約はApp Storeのサブスクリプション管理から別途行ってください。" = "All shift, pay, and expense records will be permanently deleted. This cannot be undone. Cancel Plus separately in App Store subscriptions.";
+
+"別の端末と変更が重複しています" = "Changes overlap with another device";
+
+"変更はこの端末に保存済みです。クラウドに同期しています。" = "Changes are saved on this device and waiting to sync.";
+
+"確認" = "Review";
+
+"再試行" = "Retry";
+
+"変更の確認" = "Review changes";
+
+"後で確認" = "Review later";
+
+"同じ記録が別の端末でも変更されました。内容を確認して、今回の操作に使う変更を選んでください。関連する記録はまとめて反映されます。" = "The same record was changed on another device. Review all records in this action and choose which version to use. Related changes are applied together.";
+
+"この端末の変更" = "Changes on this device";
+
+"クラウドの現在の記録" = "Current cloud records";
+
+"この端末の変更を反映" = "Apply changes from this device";
+
+"クラウドの記録を使う" = "Use cloud records";
+
+"「クラウドの記録を使う」を選ぶと、今回の操作によるこの端末の変更を取り消します。後に追加した操作は別に確認されます。" = "Using cloud records discards this action on this device. Later actions are checked separately.";
+
+"記録なし・削除済み" = "No record / deleted";
+
+"所定労働時間(分)" = "Scheduled work (minutes)";
+
+"休憩開始" = "Break start";
+
+"休日調整なし" = "No holiday adjustment";
+
+"前営業日に支給" = "Pay on the previous business day";
+
+"翌営業日に支給" = "Pay on the next business day";
+
+"扶養親族の人数" = "Number of dependents";
+
+"配偶者控除あり" = "Spouse allowance applies";
+
+"毎月の支払日" = "Monthly charge day";
+
+"以前の端末データ" = "Previous device records";
+
+"以前の記録をファイルに保存" = "Export previous records";
+
+"同期方式の更新前にこの端末にあった記録を、確認用のファイルとして保存できます。クラウドの記録には反映されません。" = "Export the records on this device before the sync update for review. They are not applied to cloud records.";
+
+"アカウント削除を再開" = "Resume account deletion";
+
+"サポート・よくある質問" = "Support and FAQ";
+
+"%lldか月後" = "%lld months later";
+
+"当月" = "Same month";
+
+"深夜割増率" = "Night premium";
+
+"残業割増率" = "Overtime premium";
+
+"休日割増率" = "Holiday premium";
+
+"別の端末でのアカウント削除を確認しています。記録はこの端末に保管しています。" = "Checking account deletion on another device. Records are retained on this device.";
+
+"写真からシフト登録" = "Import shifts from a photo";
+
+"シフトの入力を減らして、お金の予定まで。" = "Less shift entry, more clarity about your money.";
+
+"シフトの入力" = "Shift entry";
+
+"日付と時間の一覧を読み取り、確認して一括登録。候補の確認は無料。" = "Read a list of dates and times, review it, and save in one batch. Preview is free.";
+
+"シフトの入力も、来月のお金も。" = "Your shifts and next month's money.";
+
+"写真からシフトを一括登録" = "Save shifts from a photo in one batch";
+
+"日付と勤務時間の一覧を読み取り、確認・修正して登録。横長の全員表や勤務記号は対応外です。" = "Read a personal list of dates and times, review and correct it, then save. Staff grids and shift codes are not supported.";
+
+"選択したシフト画像" = "Selected shift image";
+
+"元の画像を確認" = "View original image";
+
+"登録候補が見つかりませんでした。日付と勤務時間が同じ行にある画像を選んでください。" = "No shift candidates found. Choose an image with a date and time range on each line.";
+
+"候補にできなかった行（%lld件）" = "Lines that could not be imported (%lld)";
+
+"読み取った文字を確認" = "View recognized text";
+
+"入力の手間を減らす" = "Reduce manual entry";
+
+"自分の予定だけが載った画像から、日付と勤務時間を読み取ります。" = "Read dates and working hours from an image containing only your own schedule.";
+
+"対応例：10/6 17:00–22:00。全員の横長の表や「早・遅」などの勤務記号には、まだ対応していません。" = "Example: 10/6 17:00–22:00. Staff grids and shift codes are not supported yet.";
+
+"画像は端末内で処理し、読み取りのために外部へ送信・保存しません。登録したシフトは通常どおり同期されます。" = "Images are processed on this device and are not uploaded or stored for recognition. Saved shifts sync as usual.";
+
+"写真・スクリーンショットを選ぶ" = "Choose a photo or screenshot";
+
+"サンプル画像で試す" = "Try a sample image";
+
+"文字を読み取っています" = "Reading text";
+
+"対象年月" = "Target month";
+
+"対象年月、YYYY-MM" = "Target month, YYYY-MM";
+
+"年や月が画像にない場合、この年月を使います。" = "This year and month are used when they are missing from the image.";
+
+"この年月で候補を作る" = "Create candidates for this month";
+
+"勤務先・給与設定" = "Employer and pay settings";
+
+"取り込むシフトの時給" = "Hourly wage for imported shifts";
+
+"交通費・手当・割増は選んだ勤務先の設定を使います。時給の変更は今回の登録分だけに適用します。" = "Transport, allowances, and premiums use the employer's settings. A wage change applies only to this import.";
+
+"登録する勤務先と給与設定を先に追加してください。" = "Add an employer and pay settings before saving shifts.";
+
+"登録候補（%lld件）" = "Shift candidates (%lld)";
+
+"このシフトを登録" = "Save this shift";
+
+"終了は翌日です" = "Ends the next day";
+
+"%@の休憩、分" = "Break for %@, in minutes";
+
+"休憩は読み取れていません。必要な分数を入力してください。" = "The break could not be read. Enter the number of minutes.";
+
+"元の行：%@" = "Original line: %@";
+
+"日付・時間・休憩・時給を確認しました" = "I have checked the dates, times, breaks, and wage";
+
+"読み取りには間違いが含まれることがあります。同じ勤務先・日付・時間の登録済みシフトは追加せず、既存の内容を保ちます。" = "Recognition can contain mistakes. Shifts already saved for the same employer, date, and times are skipped, preserving their details.";
+
+"候補の確認は無料。一括登録はPlusで利用できます。" = "Preview is free. Batch saving is available with Plus.";
+
+"%lld件をまとめて登録" = "Save %lld shifts";
+
+"Plusでまとめて登録" = "Save shifts with Plus";
+
+"%lld件を登録しました" = "Saved %lld shifts";
+
+"登録済みの%lld件は追加していません。" = "Skipped %lld shifts that were already saved.";
+
+"シフトに戻る" = "Back to shifts";

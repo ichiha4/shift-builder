@@ -1,0 +1,146 @@
+{
+  "appPolicies": {
+    "eula": "",
+    "policies": []
+  },
+  "identifier": "53425054",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_askToBuyEnabled": false,
+    "_billingGracePeriodEnabled": false,
+    "_billingIssuesEnabled": false,
+    "_compatibilityTimeRate": {
+      "3": 6
+    },
+    "_disableDialogs": false,
+    "_failTransactionsEnabled": false,
+    "_locale": "ja_JP",
+    "_renewalBillingIssuesEnabled": false,
+    "_storefront": "JPN",
+    "_storeKitErrors": [
+      {
+        "current": {
+          "index": 2,
+          "type": "generic"
+        },
+        "enabled": false,
+        "name": "Load Products"
+      },
+      {
+        "current": {
+          "index": 1,
+          "type": "purchase"
+        },
+        "enabled": false,
+        "name": "Purchase"
+      },
+      {
+        "current": {
+          "index": 0,
+          "type": "verification"
+        },
+        "enabled": false,
+        "name": "Verification"
+      },
+      {
+        "current": {
+          "index": 2,
+          "type": "generic"
+        },
+        "enabled": false,
+        "name": "App Store Sync"
+      },
+      {
+        "current": {
+          "index": 2,
+          "type": "generic"
+        },
+        "enabled": false,
+        "name": "Subscription Status"
+      },
+      {
+        "current": {
+          "index": 3,
+          "type": "generic"
+        },
+        "enabled": false,
+        "name": "App Transaction"
+      },
+      {
+        "current": {
+          "index": 3,
+          "type": "generic"
+        },
+        "enabled": false,
+        "name": "Manage Subscriptions Sheet"
+      },
+      {
+        "current": {
+          "index": 0,
+          "type": "refund request"
+        },
+        "enabled": false,
+        "name": "Refund Request Sheet"
+      },
+      {
+        "current": {
+          "index": 4,
+          "type": "generic"
+        },
+        "enabled": false,
+        "name": "Offer Code Redeem Sheet"
+      }
+    ],
+    "_timeRate": 0
+  },
+  "subscriptionGroups": [
+    {
+      "id": "5342504C",
+      "localizations": [],
+      "name": "Shift Builder Plus",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "billingPlans": [
+            {
+              "billingPlanType": "BILLED_UPFRONT",
+              "commitmentDisplayPrice": "300",
+              "displayPrice": "300",
+              "internalID": "53424D50",
+              "isEnabled": true
+            }
+          ],
+          "codeOffers": [],
+          "displayPrice": "300",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "53424D31",
+          "introductoryOffers": [],
+          "localizations": [
+            {
+              "description": "90日先の残高予測とシフトの収入比較",
+              "displayName": "Shift Builder Plus 月額",
+              "locale": "ja_JP"
+            },
+            {
+              "description": "90-day cash flow forecasts and shift income comparisons",
+              "displayName": "Shift Builder Plus Monthly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.example.shiftbuilder.plus.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Plus Monthly",
+          "subscriptionGroupID": "5342504C",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 6,
+    "minor": 3
+  }
+}
