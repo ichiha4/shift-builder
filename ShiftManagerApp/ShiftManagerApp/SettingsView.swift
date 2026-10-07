@@ -16,8 +16,8 @@ enum AppLanguageKey {
 
 enum SupportInfo {
     static let email = "support@example.invalid"
-    static let supportURL = URL(string: "https://github.com/ichiha4/shift-ledger/issues")!
-    static let privacyPolicyURL = URL(string: "https://github.com/ichiha4/shift-ledger/blob/main/docs/PRIVACY.md")!
+    static let supportURL = URL(string: "https://github.com/ichiha4/shift-builder/issues")!
+    static let privacyPolicyURL = URL(string: "https://github.com/ichiha4/shift-builder/blob/main/docs/PRIVACY.md")!
 
     static var versionString: String {
         let info = Bundle.main.infoDictionary

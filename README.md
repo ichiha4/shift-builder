@@ -77,8 +77,8 @@
 開発時の検証環境はXcode 27／iOS 27シミュレータです。プロジェクトの対象OSはiOS 17以降です。外部依存はSwift Package Managerで取得します。
 
 ```sh
-git clone https://github.com/ichiha4/shift-ledger.git
-cd shift-ledger
+git clone https://github.com/ichiha4/shift-builder.git
+cd shift-builder
 python3 scripts/setup_local_demo.py
 open ShiftManagerApp/ShiftManagerApp.xcodeproj
 ```
