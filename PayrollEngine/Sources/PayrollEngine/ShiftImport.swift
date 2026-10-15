@@ -190,10 +190,9 @@ public enum ShiftImportPlanner {
                 duplicates += 1
                 continue
             }
-            let incoming = Validation.absoluteRange(segment)
-            if sameDay.contains(where: { record in
-                Validation.absoluteRanges(record.segments).contains { $0.start < incoming.end && incoming.start < $0.end }
-            }) { throw ShiftImportError.overlappingShift(candidate.date) }
+            if !Validation.validateShift(shift, existing: existing + additions).isEmpty {
+                throw ShiftImportError.overlappingShift(candidate.date)
+            }
             additions.append(shift)
         }
         return .init(shifts: additions, duplicateCount: duplicates)

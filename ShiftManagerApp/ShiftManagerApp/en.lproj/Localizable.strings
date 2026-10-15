@@ -2,6 +2,10 @@
    string interpolation (employer names, categories chosen from a fixed Japanese list, dates)
    is not covered by this pass and stays in Japanese regardless of language setting. */
 
+"シフトを追加できません" = "Cannot add shift";
+"時間重複" = "Time conflict";
+"登録済みのシフトと勤務時間が重複しています。既存のシフトを確認・編集してください。" = "This overlaps an existing shift. Review or edit the saved shift.";
+
 "Appleログインに失敗しました。" = "Sign in with Apple failed.";
 "Googleログインに失敗しました。" = "Google sign-in failed.";
 "この勤務先のデフォルト値" = "Default values for this employer";

@@ -1,6 +1,44 @@
 import Foundation
 
+/// Plain editable numbers preserve stored precision; display rounding belongs in the UI.
+public enum FormNumber {
+    public static func text(_ value: Double) -> String {
+        guard value.isFinite else { return "" }
+        let result = String(value)
+        return result.hasSuffix(".0") ? String(result.dropLast(2)) : result
+    }
+
+    public static func percentageText(_ rate: Double) -> String {
+        guard rate.isFinite,
+              let decimal = Decimal(string: String(rate), locale: Locale(identifier: "en_US_POSIX")) else { return "" }
+        let percent = decimal * 100
+        return percent.isNaN ? text(rate * 100) : NSDecimalNumber(decimal: percent).stringValue
+    }
+
+    /// Optional monetary fields treat a blank as zero, while malformed input stays invalid.
+    public static func nonnegative(_ text: String, allowEmpty: Bool = false) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return allowEmpty ? 0 : nil }
+        guard let value = Double(trimmed), value.isFinite, value >= 0 else { return nil }
+        return value
+    }
+}
+
 public enum Validation {
+    /// Shared save validation for manual entry, templates, and imports. An edited shift does
+    /// not conflict with itself; other employers and adjacent overnight dates still count.
+    public static func validateShift(_ shift: Shift, existing: [Shift]) -> [String] {
+        var errors = validateShift(
+            segments: shift.segments, breakMinutes: shift.breakMinutes,
+            breakStartMinute: shift.breakStartMinute, lateNightRate: shift.lateNightRate,
+            overtimeRate: shift.overtimeRate, holidayRate: shift.holidayRate
+        )
+        if ShiftScenario.hasOverlap(shift, with: existing.filter { $0.id != shift.id }) {
+            errors.append("登録済みのシフトと勤務時間が重複しています。既存のシフトを確認・編集してください。")
+        }
+        return errors
+    }
+
     /// Absolute [start, end) range for one segment, unwrapping an overnight segment past
     /// midnight (e.g. 22:00–06:00 becomes [1320, 1800)) so two segments can be compared for
     /// overlap on one number line.

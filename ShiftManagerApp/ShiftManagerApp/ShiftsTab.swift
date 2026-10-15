@@ -19,6 +19,7 @@ struct ShiftsTab: View {
     /// confirmation that the tap registered.
     @State private var quickAddCount = 0
     @State private var pendingDelete: Shift?
+    @State private var quickAddError: String?
 
     private func confirmDelete(_ shift: Shift) {
         store.deleteShift(id: shift.id)
@@ -95,7 +96,13 @@ struct ShiftsTab: View {
     private func quickAdd(_ format: ShiftFormat) {
         guard !isFormatAdded(format) else { return }
         let shift = format.source.repeated(on: selectedDate)
+        let errors = Validation.validateShift(shift, existing: store.shifts)
+        guard errors.isEmpty else {
+            quickAddError = errors.joined(separator: "\n")
+            return
+        }
         store.addShift(shift)
+        quickAddCount += 1
         notifications.log(kind: .added, title: "シフトを追加しました", message: "\(shift.employer)・\(DateUtils.formatFullDate(shift.date, locale: locale))")
         NotificationScheduler.requestAuthorizationIfNeeded()
         NotificationScheduler.scheduleReminder(for: shift)
@@ -170,6 +177,14 @@ struct ShiftsTab: View {
             } message: { shift in
                 Text("\(shift.employer)・\(DateUtils.formatFullDate(shift.date, locale: locale))")
             }
+            .alert("シフトを追加できません", isPresented: Binding(
+                get: { quickAddError != nil },
+                set: { if !$0 { quickAddError = nil } }
+            )) {
+                Button("閉じる", role: .cancel) { quickAddError = nil }
+            } message: {
+                Text(LocalizedStringKey(quickAddError ?? ""))
+            }
         }
     }
 
@@ -234,8 +249,8 @@ struct ShiftsTab: View {
         .appCard()
     }
 
-    /// Matching shifts cannot be accidentally added twice from the same template.
-    /// A different time block remains available, and the full form allows explicit edits.
+    /// Full template matches get an "added" checkmark. Other overlapping patterns are
+    /// identified separately so a changed wage cannot create a second copy of the same work.
     private func isFormatAdded(_ format: ShiftFormat) -> Bool {
         dayShifts.contains { Self.formatKey($0) == format.id }
     }
@@ -279,14 +294,14 @@ struct ShiftsTab: View {
 
     private func formatChip(_ format: ShiftFormat) -> some View {
         let added = isFormatAdded(format)
+        let overlaps = !added && ShiftScenario.hasOverlap(format.source.repeated(on: selectedDate), with: store.shifts)
         return Button {
             quickAdd(format)
-            quickAddCount += 1
         } label: {
             HStack(spacing: 9) {
-                Image(systemName: added ? "checkmark.circle.fill" : "plus.circle.fill")
+                Image(systemName: added ? "checkmark.circle.fill" : (overlaps ? "exclamationmark.circle" : "plus.circle.fill"))
                     .font(.system(size: 21))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(overlaps ? Color.orange : Color.accentColor)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 5) {
                         Text(format.employer)
@@ -299,6 +314,10 @@ struct ShiftsTab: View {
                                 .background(Color.green.opacity(0.16))
                                 .foregroundStyle(.green)
                                 .clipShape(Capsule())
+                        } else if overlaps {
+                            Text("時間重複")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.orange)
                         }
                     }
                     Text(chipSummary(format.segments))
@@ -321,7 +340,8 @@ struct ShiftsTab: View {
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
-        .disabled(added)
+        .disabled(added || overlaps)
+        .accessibilityHint(overlaps ? Text("登録済みのシフトと勤務時間が重複しています。既存のシフトを確認・編集してください。") : Text(""))
         // Hiding lives in a long-press menu rather than an always-visible "×" — that × sat a few
         // points from the add target, so a near-miss silently removed the template instead of
         // recording a shift, and nothing on it said which of the two it would do.

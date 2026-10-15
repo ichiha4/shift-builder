@@ -92,7 +92,9 @@ swift test --jobs 1
 
 The iOS test target covers local storage, subscriptions, sync logic, and OCR. Firestore connection tests run only when the dedicated emulator is enabled.
 
-Previously recorded development results: 139 calculation tests passed; 38 iOS tests passed and 4 Firestore Emulator tests were skipped. Those runs preceded sanitizing the public copy's settings; they are not a fresh full test run against this public repository.
+On October 16, 2026, all 151 calculation-package tests passed against this public copy, including 12 regression tests for overlapping shifts, empty monetary fields, and decimal preservation. The original app, with the same fixes applied, also passed an unsigned iOS Simulator build.
+
+Previously recorded iOS results were 38 tests passed and 4 Firestore Emulator tests skipped, before sanitizing the public copy's settings. iOS XCTest and hands-on device checks were not rerun for these fixes. [Validation scope, in Japanese](docs/VALIDATION.md)
 
 ## Release direction
 

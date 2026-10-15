@@ -40,19 +40,19 @@ struct ShiftFormView: View {
         if let s = existing {
             _employer = State(initialValue: s.employer)
             _segments = State(initialValue: s.segments.map {
-                SegmentDraft(start: dateFromMinutes($0.startMinute), end: dateFromMinutes($0.endMinute), wageText: String(Int($0.hourlyWage)))
+                SegmentDraft(start: dateFromMinutes($0.startMinute), end: dateFromMinutes($0.endMinute), wageText: FormNumber.text($0.hourlyWage))
             })
             _breakEnabled = State(initialValue: s.breakStartMinute != nil)
             _untimedBreakText = State(initialValue: String(s.breakMinutes))
             _breakStart = State(initialValue: dateFromMinutes(s.breakStartMinute ?? 12 * 60))
             _breakEnd = State(initialValue: dateFromMinutes((s.breakStartMinute ?? 12 * 60) + s.breakMinutes))
-            _transportText = State(initialValue: String(Int(s.transport)))
-            _otherAllowanceText = State(initialValue: String(Int(s.otherAllowance)))
+            _transportText = State(initialValue: FormNumber.text(s.transport))
+            _otherAllowanceText = State(initialValue: FormNumber.text(s.otherAllowance))
             _isStatutoryHoliday = State(initialValue: s.isStatutoryHoliday)
             _scheduledHoursText = State(initialValue: trimmedHours(s.scheduledMinutes))
-            _lateNightPercentText = State(initialValue: String(Int((s.lateNightRate * 100).rounded())))
-            _overtimePercentText = State(initialValue: String(Int((s.overtimeRate * 100).rounded())))
-            _holidayPercentText = State(initialValue: String(Int((s.holidayRate * 100).rounded())))
+            _lateNightPercentText = State(initialValue: FormNumber.percentageText(s.lateNightRate))
+            _overtimePercentText = State(initialValue: FormNumber.percentageText(s.overtimeRate))
+            _holidayPercentText = State(initialValue: FormNumber.percentageText(s.holidayRate))
         } else {
             _employer = State(initialValue: "")
             _segments = State(initialValue: [SegmentDraft(start: dateFromMinutes(9 * 60), end: dateFromMinutes(17 * 60), wageText: "1200")])
@@ -80,12 +80,13 @@ struct ShiftFormView: View {
             id: existing?.id ?? UUID().uuidString,
             date: date, employer: employer.trimmingCharacters(in: .whitespacesAndNewlines), segments: workSegments,
             breakMinutes: breakMinutes, breakStartMinute: breakEnabled ? breakStart.minutesSinceMidnight : nil,
-            transport: Double(transportText) ?? 0, otherAllowance: Double(otherAllowanceText) ?? 0,
+            transport: FormNumber.nonnegative(transportText, allowEmpty: true) ?? 0,
+            otherAllowance: FormNumber.nonnegative(otherAllowanceText, allowEmpty: true) ?? 0,
             isStatutoryHoliday: isStatutoryHoliday,
             scheduledMinutes: Validation.scheduledMinutes(hours: Double(scheduledHoursText) ?? 8),
-            lateNightRate: (Double(lateNightPercentText) ?? 25) / 100,
-            overtimeRate: (Double(overtimePercentText) ?? 25) / 100,
-            holidayRate: (Double(holidayPercentText) ?? 35) / 100
+            lateNightRate: (FormNumber.nonnegative(lateNightPercentText) ?? 25) / 100,
+            overtimeRate: (FormNumber.nonnegative(overtimePercentText) ?? 25) / 100,
+            holidayRate: (FormNumber.nonnegative(holidayPercentText) ?? 35) / 100
         )
     }
     private var preview: ShiftPayEstimate { PayCalculation.estimateShiftPay(draftShift, allShifts: store.shifts) }
@@ -149,17 +150,17 @@ struct ShiftFormView: View {
                 }
 
                 Section("手当") {
-                    LabeledContent("交通費(円)") { TextField("0", text: $transportText).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
-                    LabeledContent("その他手当(円)") { TextField("0", text: $otherAllowanceText).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
+                    LabeledContent("交通費(円)") { TextField("0", text: $transportText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                    LabeledContent("その他手当(円)") { TextField("0", text: $otherAllowanceText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                     Toggle("この日は法定休日として計算する", isOn: $isStatutoryHoliday)
                 }
 
                 Section {
                     DisclosureGroup("詳細設定(今回だけ変更)", isExpanded: $showAdvanced) {
                         LabeledContent("所定労働時間(h)") { TextField("8", text: $scheduledHoursText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                        LabeledContent("深夜割増率(%)") { TextField("25", text: $lateNightPercentText).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
-                        LabeledContent("残業割増率(%)") { TextField("25", text: $overtimePercentText).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
-                        LabeledContent("法定休日割増率(%)") { TextField("35", text: $holidayPercentText).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
+                        LabeledContent("深夜割増率(%)") { TextField("25", text: $lateNightPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                        LabeledContent("残業割増率(%)") { TextField("25", text: $overtimePercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                        LabeledContent("法定休日割増率(%)") { TextField("35", text: $holidayPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                     }
                 }
 
@@ -224,7 +225,7 @@ struct ShiftFormView: View {
             }
             HStack {
                 Text("時給")
-                TextField("時給", text: seg.wageText).keyboardType(.numberPad)
+                TextField("時給", text: seg.wageText).keyboardType(.decimalPad)
                 Text("円")
             }
         }
@@ -235,14 +236,14 @@ struct ShiftFormView: View {
     private func applyProfileDefaultsIfNeeded(for name: String) {
         guard existing == nil, let profile = store.employerProfiles.first(where: { $0.name == name }) else { return }
         if segments.count == 1, segments[0].wageText.isEmpty || segments[0].wageText == "1200", profile.defaultWage > 0 {
-            segments[0].wageText = String(Int(profile.defaultWage))
+            segments[0].wageText = FormNumber.text(profile.defaultWage)
         }
-        if profile.defaultTransport > 0 { transportText = String(Int(profile.defaultTransport)) }
-        if profile.otherAllowance > 0 { otherAllowanceText = String(Int(profile.otherAllowance)) }
+        if profile.defaultTransport > 0 { transportText = FormNumber.text(profile.defaultTransport) }
+        if profile.otherAllowance > 0 { otherAllowanceText = FormNumber.text(profile.otherAllowance) }
         scheduledHoursText = trimmedHours(profile.scheduledMinutes)
-        lateNightPercentText = String(Int((profile.lateNightRate * 100).rounded()))
-        overtimePercentText = String(Int((profile.overtimeRate * 100).rounded()))
-        holidayPercentText = String(Int((profile.holidayRate * 100).rounded()))
+        lateNightPercentText = FormNumber.percentageText(profile.lateNightRate)
+        overtimePercentText = FormNumber.percentageText(profile.overtimeRate)
+        holidayPercentText = FormNumber.percentageText(profile.holidayRate)
     }
 
     private func save() {
@@ -251,29 +252,27 @@ struct ShiftFormView: View {
             return
         }
         guard let hours = Double(scheduledHoursText), hours.isFinite, (0...24).contains(hours),
-              [transportText, otherAllowanceText, lateNightPercentText, overtimePercentText, holidayPercentText].allSatisfy({ text in
-                  guard let value = Double(text) else { return false }; return value.isFinite && value >= 0
-              }), breakEnabled || (Int(untimedBreakText).map { $0 >= 0 } ?? false) else {
+              [transportText, otherAllowanceText].allSatisfy({ FormNumber.nonnegative($0, allowEmpty: true) != nil }),
+              [lateNightPercentText, overtimePercentText, holidayPercentText].allSatisfy({ FormNumber.nonnegative($0) != nil }),
+              breakEnabled || (Int(untimedBreakText).map { $0 >= 0 } ?? false) else {
             errors = ["数値を正しく入力してください。所定労働時間は0〜24時間です。"]
             return
         }
-        let validationErrors = Validation.validateShift(
-            segments: workSegments, breakMinutes: breakMinutes, breakStartMinute: breakEnabled ? breakStart.minutesSinceMidnight : nil,
-            lateNightRate: draftShift.lateNightRate, overtimeRate: draftShift.overtimeRate, holidayRate: draftShift.holidayRate
-        )
+        let candidate = draftShift
+        let validationErrors = Validation.validateShift(candidate, existing: store.shifts)
         guard validationErrors.isEmpty else {
             errors = validationErrors
             return
         }
         if existing != nil {
-            store.updateShift(draftShift)
-            notifications.log(kind: .updated, title: "シフトを更新しました", message: "\(draftShift.employer)・\(DateUtils.formatFullDate(draftShift.date))")
+            store.updateShift(candidate)
+            notifications.log(kind: .updated, title: "シフトを更新しました", message: "\(candidate.employer)・\(DateUtils.formatFullDate(candidate.date))")
         } else {
-            store.addShift(draftShift)
-            notifications.log(kind: .added, title: "シフトを追加しました", message: "\(draftShift.employer)・\(DateUtils.formatFullDate(draftShift.date))")
+            store.addShift(candidate)
+            notifications.log(kind: .added, title: "シフトを追加しました", message: "\(candidate.employer)・\(DateUtils.formatFullDate(candidate.date))")
         }
         NotificationScheduler.requestAuthorizationIfNeeded()
-        NotificationScheduler.scheduleReminder(for: draftShift)
+        NotificationScheduler.scheduleReminder(for: candidate)
         dismiss()
     }
 }

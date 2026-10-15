@@ -35,16 +35,16 @@ struct EmployerProfileFormView: View {
         if let p = existing {
             _name = State(initialValue: p.name)
             _scheduledHoursText = State(initialValue: Self.trimmed(p.scheduledHours))
-            _defaultWageText = State(initialValue: p.defaultWage > 0 ? String(Int(p.defaultWage)) : "")
-            _defaultTransportText = State(initialValue: p.defaultTransport > 0 ? String(Int(p.defaultTransport)) : "")
-            _otherAllowanceText = State(initialValue: p.otherAllowance > 0 ? String(Int(p.otherAllowance)) : "")
+            _defaultWageText = State(initialValue: p.defaultWage > 0 ? FormNumber.text(p.defaultWage) : "")
+            _defaultTransportText = State(initialValue: FormNumber.text(p.defaultTransport))
+            _otherAllowanceText = State(initialValue: FormNumber.text(p.otherAllowance))
             _closingDay = State(initialValue: p.closingDay)
             _paydayMonthOffset = State(initialValue: p.paydayMonthOffset)
             _paydayDay = State(initialValue: p.paydayDay)
             _paydayAdjustment = State(initialValue: p.paydayAdjustment)
-            _lateNightPercentText = State(initialValue: String(Int((p.lateNightRate * 100).rounded())))
-            _overtimePercentText = State(initialValue: String(Int((p.overtimeRate * 100).rounded())))
-            _holidayPercentText = State(initialValue: String(Int((p.holidayRate * 100).rounded())))
+            _lateNightPercentText = State(initialValue: FormNumber.percentageText(p.lateNightRate))
+            _overtimePercentText = State(initialValue: FormNumber.percentageText(p.overtimeRate))
+            _holidayPercentText = State(initialValue: FormNumber.percentageText(p.holidayRate))
             _employmentType = State(initialValue: p.employmentType)
             _incomeTaxColumn = State(initialValue: p.incomeTaxColumn)
             _dependentsCount = State(initialValue: p.dependentsCount)
@@ -53,8 +53,8 @@ struct EmployerProfileFormView: View {
             _name = State(initialValue: prefillName)
             _scheduledHoursText = State(initialValue: "8")
             _defaultWageText = State(initialValue: "")
-            _defaultTransportText = State(initialValue: "")
-            _otherAllowanceText = State(initialValue: "")
+            _defaultTransportText = State(initialValue: "0")
+            _otherAllowanceText = State(initialValue: "0")
             _closingDay = State(initialValue: 0)
             _paydayMonthOffset = State(initialValue: 1)
             _paydayDay = State(initialValue: 25)
@@ -74,16 +74,16 @@ struct EmployerProfileFormView: View {
             id: existing?.id ?? UUID().uuidString,
             name: name.trimmingCharacters(in: .whitespaces),
             scheduledHours: Double(scheduledHoursText) ?? 8,
-            defaultWage: Double(defaultWageText) ?? 0,
-            defaultTransport: Double(defaultTransportText) ?? 0,
-            otherAllowance: Double(otherAllowanceText) ?? 0,
+            defaultWage: FormNumber.nonnegative(defaultWageText, allowEmpty: true) ?? 0,
+            defaultTransport: FormNumber.nonnegative(defaultTransportText, allowEmpty: true) ?? 0,
+            otherAllowance: FormNumber.nonnegative(otherAllowanceText, allowEmpty: true) ?? 0,
             closingDay: closingDay,
             paydayMonthOffset: paydayMonthOffset,
             paydayDay: paydayDay,
             paydayAdjustment: paydayAdjustment,
-            lateNightRate: (Double(lateNightPercentText) ?? 25) / 100,
-            overtimeRate: (Double(overtimePercentText) ?? 25) / 100,
-            holidayRate: (Double(holidayPercentText) ?? 35) / 100,
+            lateNightRate: (FormNumber.nonnegative(lateNightPercentText) ?? 25) / 100,
+            overtimeRate: (FormNumber.nonnegative(overtimePercentText) ?? 25) / 100,
+            holidayRate: (FormNumber.nonnegative(holidayPercentText) ?? 35) / 100,
             employmentType: employmentType,
             incomeTaxColumn: incomeTaxColumn,
             dependentsCount: dependentsCount,
@@ -108,13 +108,13 @@ struct EmployerProfileFormView: View {
                         TextField("8", text: $scheduledHoursText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                     }
                     LabeledContent("時給(円)") {
-                        TextField("未設定", text: $defaultWageText).keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                        TextField("未設定", text: $defaultWageText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                     }
                     LabeledContent("交通費(円)") {
-                        TextField("0", text: $defaultTransportText).keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                        TextField("0", text: $defaultTransportText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                     }
                     LabeledContent("その他手当(円)") {
-                        TextField("0", text: $otherAllowanceText).keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                        TextField("0", text: $otherAllowanceText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
                     }
                 } header: {
                     Text("この勤務先のデフォルト値")
@@ -142,9 +142,9 @@ struct EmployerProfileFormView: View {
                 }
 
                 Section("割増率") {
-                    LabeledContent("深夜割増率(%)") { TextField("25", text: $lateNightPercentText).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
-                    LabeledContent("残業割増率(%)") { TextField("25", text: $overtimePercentText).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
-                    LabeledContent("法定休日割増率(%)") { TextField("35", text: $holidayPercentText).keyboardType(.numberPad).multilineTextAlignment(.trailing) }
+                    LabeledContent("深夜割増率(%)") { TextField("25", text: $lateNightPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                    LabeledContent("残業割増率(%)") { TextField("25", text: $overtimePercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                    LabeledContent("法定休日割増率(%)") { TextField("35", text: $holidayPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                 }
 
                 Section {
@@ -212,9 +212,8 @@ struct EmployerProfileFormView: View {
             return
         }
         guard let hours = Double(scheduledHoursText), hours.isFinite, (0...24).contains(hours),
-              [defaultWageText, defaultTransportText, otherAllowanceText, lateNightPercentText, overtimePercentText, holidayPercentText].allSatisfy({ text in
-                  guard let value = Double(text) else { return false }; return value.isFinite && value >= 0
-              }) else {
+              [defaultWageText, defaultTransportText, otherAllowanceText].allSatisfy({ FormNumber.nonnegative($0, allowEmpty: true) != nil }),
+              [lateNightPercentText, overtimePercentText, holidayPercentText].allSatisfy({ FormNumber.nonnegative($0) != nil }) else {
             errors = ["数値を正しく入力してください。所定労働時間は0〜24時間です。"]
             return
         }
