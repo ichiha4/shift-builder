@@ -2,70 +2,39 @@
 
 English · [日本語](README.md)
 
-**Add your shifts. Look forward to payday.**
+**Pick a date. Tap a template. Your shift is saved.**
 
-An iOS app designed for students and hourly workers who want to keep track of their own shifts and earnings, including multiple part-time jobs. A clear home screen, a payday animation, and one-tap shift templates aim to make entering shifts easier and checking your progress more rewarding.
+An iOS shift and pay tracker for students and hourly workers. Reuse recorded shift patterns without filling out another form, see next month's scheduled pay on a dark home card, and enter actual payslip figures on payday to track a self-selected annual income limit.
 
-**Development status:** Not yet available on the App Store. The current build uses Japanese yen and Japan-specific pay calculations. English UI coverage is partial; an international version is planned, not implemented. [International launch plan](docs/INTERNATIONAL.md)
+## The core experience
 
-## Three details that shape the experience
+- **Two actions to add a usual shift:** select a calendar date, then tap a template. The shift saves immediately. Added patterns receive a checkmark; overlapping work is blocked. Template order stays stable during repeated entry.
+- **A home screen worth opening:** next month's estimated gross pay uses employer-specific closing days, paydays, and holiday adjustments. The chart shows cumulative scheduled payouts, alongside the next shift and an option to hide the headline amount.
+- **A reason to return on payday:** a rotating coin banner invites the user to enter taxable gross from their payslip. Recorded calendar-year earnings and the remaining amount below their chosen limit update together. Take-home pay is optional and stored separately.
 
 <table>
-<tr><th>A home screen worth opening</th><th>A little payday celebration</th><th>One-tap shift entry</th></tr>
+<tr><th>One-tap template entry</th><th>Next month's scheduled pay</th></tr>
 <tr>
-<td><img src="docs/screenshots/home.png" width="250" alt="Home screen with a dark earnings card and a chart"></td>
-<td><img src="docs/screenshots/payday.png" width="250" alt="Payday banner inviting the user to record their actual take-home pay"></td>
-<td><img src="docs/screenshots/template.png" width="250" alt="Shift template marked as added after a single tap"></td>
+<td><img src="docs/screenshots/template-current.png" width="300" alt="A shift saved after selecting a date and tapping a template"></td>
+<td><img src="docs/screenshots/home-current.png" width="300" alt="Next month's scheduled pay and a recorded annual income tracker"></td>
 </tr>
 </table>
 
-The screenshots show the current Japanese interface and yen amounts. All sample employers, shifts, and amounts are fictional.
+Actual simulator captures from October 16, 2026. All employers, shifts, amounts, and annual limits are fictional test data. The sample limit is not a statement of a legal threshold.
 
-### See what your work adds up to
+The annual tracker adds entered taxable gross only, excluding non-taxable items. It never treats legacy take-home records or shift estimates as actual annual earnings. Users set their own limit; the tracker does not determine health-insurance dependency from calendar-year totals.
 
-The dark home card shows the month's pay and its breakdown by employer. Switch cards to see income, expenses, and a chart for the month worked. A button hides amounts when checking your schedule in public, and your next shift is close at hand.
+## Current scope
 
-### Make payday a moment to remember
+The main tabs are Home, Shifts, and Pay. Employer setup focuses on name, rate, closing day, and payday; allowances and premium settings are optional details. There is no subscription or photo-import entry point in the current app. Balance projections, subscriptions, photo import, and international expansion are on hold. Experimental source remains in the repository.
 
-A rotating coin banner appears on an employer's payday. From the banner, enter your actual take-home pay and reflect it on the home screen. The animation connects seeing the result of your work with recording what you received.
-
-<img src="docs/screenshots/payday.gif" width="300" alt="Actual app recording of the coin rotating in the payday banner">
-
-### Pick a date. Tap your usual shift.
-
-Recent shift patterns become reusable templates. Select a date and tap a template to add its employer, hours, wage, and break settings. A checkmark identifies an already-added pattern and prevents adding that same template twice on the date.
-
-<img src="docs/screenshots/template-add.gif" width="300" alt="Actual app screens before and after adding a shift from a template">
-
-These images were captured from the implemented SwiftUI app in a simulator. The template GIF alternates between the actual screens before and after one tap. These features are implemented; their effect on motivation and retention has not yet been tested with users.
-
-## Other implemented features
-
-- A calendar for shifts across multiple employers, repeated shifts, and pre-shift reminders.
-- Estimated pay using hourly rates, unpaid breaks, premium settings, pay periods, and paydays; actual pay records are kept separately.
-- Balance projections using expenses, recurring expenses, and expected deposits. The current free/Plus feature split is 7 days versus 90 days.
-- A comparison of estimated pay after adding or removing one shift, without changing the saved schedule.
-- Photo-to-shift import with review and editing before saving. Apple Vision processes images on the device.
-- Account-scoped cloud sync, offline editing, and conflict visibility.
-
-The current payroll, withholding, holiday handling, and income-limit features are Japan-specific. Projections are estimates based on entered information. There is no bank integration. Photo import accepts personal lists with one date and one time range per line; broad staff grids and AM/PM formats are not supported. Review imported candidates against the original image.
+**Not yet released on the App Store.** The app currently targets Japan, uses yen and Japan-specific payroll rules, and has partial English UI coverage. User retention, paid demand, and revenue are unverified.
 
 ## Technology
 
-| Area | Implementation |
-| --- | --- |
-| Interface | SwiftUI, Swift Charts, PhotosPicker, dark mode, Japanese and partial English UI |
-| Calculations | Independent Foundation-based Swift package: `PayrollEngine` |
-| Photo recognition | On-device Apple Vision; images and recognized text are not uploaded to an external AI service |
-| Authentication and sync | Firebase Auth, Firestore, Google Sign-In, Sign in with Apple |
-| Purchases | StoreKit 2 and StoreKit Testing; access is derived from verified transactions |
-| Verification | XCTest, Swift package tests, and dedicated Firestore Emulator tests |
-
-Additional documentation is currently in Japanese: [UI and UX design](docs/DESIGN.md), [architecture](docs/ARCHITECTURE.md), [validation scope](docs/VALIDATION.md), and [source/demo data handling](docs/PRIVACY.md).
+SwiftUI and Swift Charts, with payroll and record aggregation in the independent Foundation-based `PayrollEngine` Swift package. The normal configuration uses Firebase Auth and Firestore with account-scoped offline editing and conflict handling. The local demo uses separate local storage and skips sign-in.
 
 ## Run the local demo
-
-The development verification environment used Xcode 27 and an iOS 27 simulator. The deployment target is iOS 17 or later. External dependencies are resolved with Swift Package Manager.
 
 ```sh
 git clone https://github.com/ichiha4/shift-builder.git
@@ -74,30 +43,19 @@ python3 scripts/setup_local_demo.py
 open ShiftManagerApp/ShiftManagerApp.xcodeproj
 ```
 
-1. Select the **ShiftManagerApp-LocalDevice** scheme.
-2. Select an iPhone simulator and run the app.
-3. This configuration skips sign-in and stores records locally. Add an employer and shifts, or try the sample image in photo import.
-4. To test Plus, use `ShiftBuilderPlus.storekit` as the Run action's StoreKit Configuration; the shared scheme already includes it. Local purchase testing does not charge real money.
+Select **ShiftManagerApp-LocalDevice**, choose an iPhone simulator, and run. Register an employer and your first shift, then select another date and tap its template. Enter actual payslip figures from Pay and set an annual limit from the home card.
 
-The setup script generates placeholder Firebase configuration only when needed and does not overwrite an existing configuration. The placeholder cannot provide authentication or cloud sync in the normal scheme. To run on your own iPhone, change the bundle identifier and configure your Personal Team for the LocalDevice configuration. [Setup details, in Japanese](docs/SETUP.md)
+The deployment target is iOS 17 or later; development verification used Xcode 27 and iOS 27. Swift Package Manager resolves dependencies. Placeholder Firebase settings generated by the script do not provide normal authentication or cloud sync. [Setup details, Japanese](docs/SETUP.md)
 
-## Tests
-
-The calculation package can be tested without Firebase or an iPhone:
+## Verification
 
 ```sh
 cd PayrollEngine
 swift test --jobs 1
 ```
 
-The iOS test target covers local storage, subscriptions, sync logic, and OCR. Firestore connection tests run only when the dedicated emulator is enabled.
+All 158 calculation-package tests passed on October 16, 2026, including regression coverage for overlaps, numeric fields, legacy payslip decoding, payment-year boundaries, and corrected records. Previously recorded iOS XCTest results were 38 passed and 4 Firestore Emulator tests skipped. See [validation scope](docs/VALIDATION.md) for current build and simulator checks and remaining limitations.
 
-On October 16, 2026, all 151 calculation-package tests passed against this public copy, including 12 regression tests for overlapping shifts, empty monetary fields, and decimal preservation. The original app, with the same fixes applied, also passed an unsigned iOS Simulator build.
+Production configuration, signing identifiers, credentials, build outputs, and backups are excluded. App Store Connect, TestFlight/Sandbox, and end-to-end real-device verification remain unfinished.
 
-Previously recorded iOS results were 38 tests passed and 4 Firestore Emulator tests skipped, before sanitizing the public copy's settings. iOS XCTest and hands-on device checks were not rerun for these fixes. [Validation scope, in Japanese](docs/VALIDATION.md)
-
-## Release direction
-
-The planned model is free core features plus optional Plus. Prices and the final paid feature set are not decided. The first step is to test whether people want to replace their current method with this experience, and then observe use through a pay cycle. No user retention, paid demand, or revenue has been established.
-
-Production Firebase configuration, signing team identifiers, actual device identifiers, credentials, build outputs, and backups are excluded from this repository. App Store Connect, TestFlight/Sandbox, and end-to-end real-device verification remain unfinished.
+Further documentation is in Japanese: [UI and UX](docs/DESIGN.md), [architecture](docs/ARCHITECTURE.md), [product direction](docs/PRODUCT_DECISION.md), and [data handling](docs/PRIVACY.md).

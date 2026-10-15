@@ -64,10 +64,37 @@ public struct PaydayIncomeEntry: Identifiable, Equatable, Sendable {
     public var isActual: Bool
 }
 
+public struct RecordedIncomeSummary: Equatable, Sendable {
+    public var taxableGross: Double
+    public var paymentCount: Int
+    public var missingGrossCount: Int
+}
+
 public enum Aggregation {
+    /// A calendar-year running total of entered payslips only. Future paydays and shift
+    /// estimates do not count. Corrections to the same employer/payday replace earlier rows.
+    public static func recordedIncome(year: Int, through date: String, payments: [ActualPayment]) -> RecordedIncomeSummary {
+        let prefix = String(format: "%04d-", year)
+        var unique: [String: ActualPayment] = [:]
+        for payment in payments where payment.payDate.hasPrefix(prefix) && payment.payDate <= date && DateUtils.parseYMD(payment.payDate) != nil {
+            unique[payment.employer + "\u{0}" + payment.payDate] = payment
+        }
+        var result = RecordedIncomeSummary(taxableGross: 0, paymentCount: 0, missingGrossCount: 0)
+        for payment in unique.values {
+            guard let gross = payment.taxableGross, gross.isFinite, gross >= 0 else {
+                result.missingGrossCount += 1
+                continue
+            }
+            result.taxableGross += gross
+            result.paymentCount += 1
+        }
+        return result
+    }
+
     public static func paydayIncomeEntries(month: String, shifts: [Shift], profiles: [EmployerProfile], actualPayments: [ActualPayment], classifications: [String: [String: ShiftClassification]]) -> [PaydayIncomeEntry] {
-        var results = actualPayments.filter { $0.payDate.hasPrefix(month) }.map {
-            PaydayIncomeEntry(id: "actual:" + $0.id, employer: $0.employer, amount: $0.amount, isActual: true)
+        var results = actualPayments.filter { $0.payDate.hasPrefix(month) }.compactMap { payment -> PaydayIncomeEntry? in
+            guard let amount = payment.amount else { return nil }
+            return PaydayIncomeEntry(id: "actual:" + payment.id, employer: payment.employer, amount: amount, isActual: true)
         }
         var seen = Set<String>()
         for profile in profiles {
@@ -76,7 +103,7 @@ public enum Aggregation {
                 // A receipt replaces an estimate only for the same employer and payday.
                 let key = profile.name + "\u{0}" + payDate
                 guard seen.insert(key).inserted,
-                      !actualPayments.contains(where: { $0.employer == profile.name && $0.payDate == payDate }) else { continue }
+                      !actualPayments.contains(where: { $0.employer == profile.name && $0.payDate == payDate && $0.amount != nil }) else { continue }
                 let paidShifts = shifts.filter { $0.employer == profile.name && $0.date >= period.periodStart && $0.date <= period.periodEnd }
                 let amount = calculateMonthlyPay(paidShifts, classifications: classifications).grossTotal
                 if amount > 0 {

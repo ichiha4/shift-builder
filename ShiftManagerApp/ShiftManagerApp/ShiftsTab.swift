@@ -9,7 +9,6 @@ struct ShiftsTab: View {
 
     @State private var selectedDate: String
     @State private var showAddSheet = false
-    @State private var showPhotoImport = false
     @State private var editingShift: Shift?
     @State private var dismissedFormatKeys: Set<String> = Set(
         UserDefaults.standard.stringArray(forKey: "shiftmgr.dismissedShiftFormats") ?? []
@@ -59,26 +58,26 @@ struct ShiftsTab: View {
         let employer: String
         let segments: [WorkSegment]
         let source: Shift
-        let lastUsedDate: String
     }
 
-    /// Every distinct (employer, time blocks) combination ever used, most-recently-used first,
-    /// capped at 5 so the row stays scannable — deliberately built from `store.shifts` instead
-    /// of a separate saved-template list, since "recently added history" (the ask) is exactly
-    /// what shift history already contains.
+    /// Reuse recorded patterns without a second setup flow. Stable ordering keeps a template
+    /// under the user's finger while adding the same pattern across several calendar dates.
     private var recentFormats: [ShiftFormat] {
         var seen: [String: ShiftFormat] = [:]
         for shift in store.shifts.sorted(by: { $0.date > $1.date }) {
             let key = Self.formatKey(shift)
             if seen[key] == nil {
-                seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments, source: shift, lastUsedDate: shift.date)
+                seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments, source: shift)
             }
         }
         return seen.values
             .filter { !dismissedFormatKeys.contains($0.id) }
-            .sorted { $0.lastUsedDate > $1.lastUsedDate }
-            .prefix(5)
-            .map { $0 }
+            .sorted {
+                if $0.employer != $1.employer { return $0.employer < $1.employer }
+                let left = $0.segments.first?.startMinute ?? 0
+                let right = $1.segments.first?.startMinute ?? 0
+                return left == right ? $0.id < $1.id : left < right
+            }
     }
 
     private static func formatKey(_ shift: Shift) -> String {
@@ -104,7 +103,6 @@ struct ShiftsTab: View {
         store.addShift(shift)
         quickAddCount += 1
         notifications.log(kind: .added, title: "シフトを追加しました", message: "\(shift.employer)・\(DateUtils.formatFullDate(shift.date, locale: locale))")
-        NotificationScheduler.requestAuthorizationIfNeeded()
         NotificationScheduler.scheduleReminder(for: shift)
     }
 
@@ -113,17 +111,16 @@ struct ShiftsTab: View {
         UserDefaults.standard.set(Array(dismissedFormatKeys), forKey: "shiftmgr.dismissedShiftFormats")
     }
 
+    private func restoreFormats() {
+        dismissedFormatKeys.removeAll()
+        UserDefaults.standard.removeObject(forKey: "shiftmgr.dismissedShiftFormats")
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     monthNav
-                    Button {
-                        showPhotoImport = true
-                    } label: {
-                        Label("写真からシフト登録", systemImage: "photo.badge.plus")
-                            .frame(maxWidth: .infinity)
-                    }.buttonStyle(.bordered)
                     CalendarMonthView(month: month, monthShifts: monthShifts, classifications: store.classifications, selectedDate: $selectedDate)
                     dayDetailCard
                 }
@@ -153,11 +150,6 @@ struct ShiftsTab: View {
             .onChange(of: requestedDate) { _, _ in selectRequestedDate() }
             .sheet(isPresented: $showAddSheet) {
                 ShiftFormView(date: selectedDate, existing: nil)
-                    .environmentObject(store)
-                    .environmentObject(notifications)
-            }
-            .sheet(isPresented: $showPhotoImport) {
-                NavigationStack { ShiftPhotoImportView(month: month) }
                     .environmentObject(store)
                     .environmentObject(notifications)
             }
@@ -229,6 +221,12 @@ struct ShiftsTab: View {
             }
             if !recentFormats.isEmpty {
                 formatQuickAddRow
+            } else {
+                Text("最初のシフトを追加すると、次から日付を選んでテンプレートをタップするだけで登録できます。")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                if !dismissedFormatKeys.isEmpty {
+                    Button("非表示のテンプレートを戻す", action: restoreFormats).font(.subheadline)
+                }
             }
             if dayShifts.isEmpty {
                 Text("この日のシフトはありません。").font(.caption).foregroundStyle(.secondary)
@@ -272,6 +270,9 @@ struct ShiftsTab: View {
                 Image(systemName: "bolt.fill").font(.system(size: 10))
                 Text("テンプレート").font(.caption).fontWeight(.semibold)
                 Spacer()
+                if !dismissedFormatKeys.isEmpty {
+                    Button("非表示を戻す", action: restoreFormats).font(.caption2)
+                }
                 Text("タップでこの日に追加").font(.caption2)
             }
             .foregroundStyle(.secondary)

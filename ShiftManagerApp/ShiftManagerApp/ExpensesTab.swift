@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ExpensesTab: View {
     @EnvironmentObject var store: ShiftStore
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @Binding var month: String
 
@@ -35,6 +36,9 @@ struct ExpensesTab: View {
             .background(Color(.systemGroupedBackground))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("閉じる") { dismiss() }
+                }
                 ToolbarItem(placement: .principal) {
                     Text("支出").font(.title2.weight(.bold))
                 }

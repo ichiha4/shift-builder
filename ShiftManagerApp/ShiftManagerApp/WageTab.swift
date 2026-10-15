@@ -11,6 +11,8 @@ struct WageTab: View {
     @State private var deductionAmountText = ""
     @State private var deductionError: String?
     @State private var showEmployerProfiles = false
+    @State private var showPayDetails = false
+    @State private var paymentPrompt: PaydayPrompt?
     /// Held so any action that changes the deductions card's height (opening the manual-add
     /// form, tapping a preset) can re-anchor the scroll position — otherwise the ScrollView
     /// loses its place and jumps back to the top when that content reflows.
@@ -37,6 +39,9 @@ struct WageTab: View {
     private var paydayYear: Int { Int(month.prefix(4)) ?? DateUtils.calendar.component(.year, from: Date()) }
     private var monthDeductions: [Deduction] { store.deductions.filter { $0.month == month } }
     private var payslip: MonthlyPayslip { Aggregation.calculateMonthlyPay(monthShifts, classifications: store.classifications) }
+    private var recordedGross: [Double] {
+        store.actualPayments.filter { $0.payDate.hasPrefix(month) }.compactMap(\.taxableGross)
+    }
     /// One row per employer, taxed independently — never combine employers before withholding.
     private var incomeTaxRows: [EmployerIncomeTax] {
         Aggregation.calculateIncomeTax(monthShifts, classifications: store.classifications, profiles: store.employerProfiles, socialInsurance: socialInsuranceTotal, year: paydayYear)
@@ -76,11 +81,14 @@ struct WageTab: View {
                     VStack(spacing: 16) {
                         monthNav
                         flowSummary
-                        detailsLinkCard
                         if !store.employerProfiles.isEmpty { paydayCard }
                         if store.actualPayments.contains(where: { $0.payDate.hasPrefix(month) }) { actualPaymentsCard }
-                        deductionsCard
-                            .id(Self.deductionsAnchor)
+                        DisclosureGroup("計算の詳細を見る（任意）", isExpanded: $showPayDetails) {
+                            VStack(spacing: 12) {
+                                detailsLinkCard
+                                deductionsCard.id(Self.deductionsAnchor)
+                            }.padding(.top, 12)
+                        }.appCard()
                     }
                     .padding(16)
                     .readableColumn()
@@ -97,10 +105,13 @@ struct WageTab: View {
                     Button {
                         showEmployerProfiles = true
                     } label: {
-                        Image(systemName: "plus.circle.fill")
+                        Label("勤務先", systemImage: "building.2")
                     }
-                    .accessibilityLabel("勤務先を追加")
+                    .accessibilityLabel("勤務先の管理")
                 }
+            }
+            .sheet(item: $paymentPrompt) { prompt in
+                ActualPaySheet(prompt: prompt).environmentObject(store)
             }
             .sheet(isPresented: $showEmployerProfiles) {
                 EmployerProfilesView().environmentObject(store)
@@ -124,14 +135,23 @@ struct WageTab: View {
     // MARK: - Flow summary
 
     private var flowSummary: some View {
-        HStack(spacing: 4) {
-            flowBox(label: "総支給", value: payslip.grossTotal, color: .green)
-            Image(systemName: "arrow.right").foregroundStyle(.secondary)
-            flowBox(label: "控除", value: -deductionsTotal, color: .red)
-            Image(systemName: "arrow.right").foregroundStyle(.secondary)
-            flowBox(label: "手取り", value: netIncome, color: .accentColor, bold: true)
-        }
-        .appCard(padding: 14)
+        VStack(alignment: .leading, spacing: 10) {
+            Text(recordedGross.isEmpty ? "この月に支給される給与見込み" : "この月の給与（入力済み）")
+                .font(.subheadline).foregroundStyle(.secondary)
+            Text(yen(recordedGross.isEmpty ? payslip.grossTotal : recordedGross.reduce(0, +))).font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.accentColor).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
+            if recordedGross.isEmpty {
+                Text("控除前の金額です。給料日に、給与明細の実際の金額を入力できます。")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("給与明細から入力した\(recordedGross.count)件の課税支給額の合計です。未入力の給与やシフトの見込みは含めません。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if recordedGross.isEmpty && store.shifts.contains(where: { shift in !store.employerProfiles.contains { $0.name == shift.employer } }) {
+                Text("給料日が未設定の勤務先は、働いた月で集計しています。勤務先の管理から設定できます。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }.frame(maxWidth: .infinity, alignment: .leading).appCard()
     }
 
     private func flowBox(label: LocalizedStringKey, value: Double, color: Color, bold: Bool = false) -> some View {
@@ -169,44 +189,39 @@ struct WageTab: View {
     // MARK: - Payday
 
     private var paydayCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            CardHeader("給与の支給予定", systemImage: "calendar.badge.clock")
+        VStack(alignment: .leading, spacing: 14) {
+            CardHeader("給料日", systemImage: "calendar.badge.clock")
             ForEach(store.employerProfiles) { profile in
-                let period = PayPeriod.period(forDate: DateUtils.todayYMD(), closingDay: profile.closingDay)
-                let payDate = PayPeriod.paymentDate(periodEnd: period.periodEnd, paydayMonthOffset: profile.paydayMonthOffset, paydayDay: profile.paydayDay, adjustment: profile.paydayAdjustment)
-                let rawPayDate = PayPeriod.paymentDate(periodEnd: period.periodEnd, paydayMonthOffset: profile.paydayMonthOffset, paydayDay: profile.paydayDay, adjustment: .none)
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(profile.name).fontWeight(.semibold)
-                        Text("\(DateUtils.formatPeriodDate(period.periodStart))〜\(DateUtils.formatPeriodDate(period.periodEnd))分")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(DateUtils.formatFullDate(payDate, locale: locale)).font(.subheadline)
-                        if payDate != rawPayDate {
-                            Group {
-                                if profile.paydayAdjustment == .beforeBusinessDay {
-                                    Text("土日祝・年末年始のため繰り上げ")
-                                } else {
-                                    Text("土日祝・年末年始のため繰り下げ")
-                                }
+                let periods = PayPeriod.periods(paidInMonth: month, profile: profile)
+                ForEach(periods, id: \.periodEnd) { period in
+                    let payDate = PayPeriod.paymentDate(periodEnd: period.periodEnd,
+                        paydayMonthOffset: profile.paydayMonthOffset, paydayDay: profile.paydayDay,
+                        adjustment: profile.paydayAdjustment)
+                    let recorded = store.actualPayments.contains { $0.employer == profile.name && $0.payDate == payDate && $0.taxableGross != nil }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(profile.name).font(.subheadline.weight(.semibold))
+                                Text("\(DateUtils.formatPeriodDate(period.periodStart))〜\(DateUtils.formatPeriodDate(period.periodEnd))の勤務分")
+                                    .font(.caption).foregroundStyle(.secondary)
                             }
-                            .font(.caption2).foregroundStyle(.secondary)
+                            Spacer()
+                            Text(DateUtils.formatFullDate(payDate, locale: locale)).font(.caption)
                         }
+                    Button(recorded ? "入力した給与を編集" : "実際の給与を入力") {
+                            paymentPrompt = PaydayPrompt(profile: profile, payDate: payDate)
+                        }.font(.subheadline).buttonStyle(.bordered)
                     }
                 }
             }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .appCard()
+        }.frame(maxWidth: .infinity, alignment: .leading).appCard()
     }
 
     // MARK: - Actual pay received (recorded from the payday-banner prompt)
 
     private var actualPaymentsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            CardHeader("受け取った給与", systemImage: "checkmark.seal.fill")
+            CardHeader("記録した給与", systemImage: "checkmark.seal.fill")
             ForEach(store.actualPayments.filter { $0.payDate.hasPrefix(month) }.sorted { $0.payDate > $1.payDate }) { payment in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -215,11 +230,23 @@ struct WageTab: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Text(yen(payment.amount)).foregroundStyle(.green).fontWeight(.semibold)
-                    Button {
-                        store.deleteActualPayment(id: payment.id)
-                    } label: {
-                        Image(systemName: "trash").foregroundStyle(.secondary).accessibilityLabel("削除")
+                    VStack(alignment: .trailing, spacing: 3) {
+                        if let gross = payment.taxableGross {
+                            Text(yen(gross)).foregroundStyle(.green).fontWeight(.semibold)
+                            Text("課税支給額").font(.caption2).foregroundStyle(.secondary)
+                        } else {
+                            Text("支給額は未入力").font(.caption).foregroundStyle(.orange)
+                        }
+                        if let amount = payment.amount {
+                            Text("手取り \(yen(amount))").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    if let profile = store.employerProfiles.first(where: { $0.name == payment.employer }) {
+                        Button {
+                            paymentPrompt = PaydayPrompt(profile: profile, payDate: payment.payDate)
+                        } label: {
+                            Image(systemName: "pencil").padding(8)
+                        }.accessibilityLabel("給与記録を編集")
                     }
                 }
                 .font(.subheadline)

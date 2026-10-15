@@ -27,6 +27,7 @@ struct EmployerProfileFormView: View {
     @State private var dependentsCount: Int
     @State private var hasSpouseAllowance: Bool
     @State private var errors: [String] = []
+    @State private var showAdvanced = false
     @FocusState private var nameFieldFocused: Bool
 
     init(existing: EmployerProfile?, prefillName: String = "") {
@@ -96,57 +97,14 @@ struct EmployerProfileFormView: View {
             Form {
                 Section("勤務先") {
                     TextField("例:カフェ○○", text: $name)
-                        .autocorrectionDisabled()
-                        .focused($nameFieldFocused)
-                    Picker("雇用形態", selection: $employmentType) {
-                        ForEach(PayrollConstants.employmentTypes, id: \.self) { Text(LocalizedStringKey($0)) }
-                    }
-                }
-
-                Section {
-                    LabeledContent("所定労働時間(h/日)") {
-                        TextField("8", text: $scheduledHoursText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
-                    }
+                        .autocorrectionDisabled().focused($nameFieldFocused)
+                        .accessibilityLabel("勤務先名")
                     LabeledContent("時給(円)") {
-                        TextField("未設定", text: $defaultWageText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("交通費(円)") {
-                        TextField("0", text: $defaultTransportText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("その他手当(円)") {
-                        TextField("0", text: $otherAllowanceText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
-                    }
-                } header: {
-                    Text("この勤務先のデフォルト値")
-                } footer: {
-                    Text("シフト追加時にこの勤務先名を入力すると、ここで設定した値が自動的に入ります。")
-                }
-
-                Section {
-                    Picker("税額表の区分", selection: $incomeTaxColumn) {
-                        Text("甲欄(メインの勤務先)").tag(IncomeTaxColumn.kou)
-                        Text("乙欄(掛け持ち先)").tag(IncomeTaxColumn.otsu)
-                    }
-                    if incomeTaxColumn == .kou {
-                        Toggle("源泉控除対象配偶者がいる", isOn: $hasSpouseAllowance)
-                        Stepper("扶養親族等の数(配偶者を除く): \(dependentsCount)人", value: $dependentsCount, in: 0...10)
-                    }
-                } header: {
-                    Text("所得税(源泉徴収)")
-                } footer: {
-                    if incomeTaxColumn == .kou {
-                        Text("「給与所得者の扶養控除等申告書」を提出している勤務先(通常はメインの1箇所だけ)は甲欄です。申告書に書いた内容に合わせて入力してください。源泉控除対象配偶者は、あなたの所得が900万円以下で、配偶者の所得の見積額が95万円以下の場合です。扶養親族等の数に16歳未満の子は含めません。あなた自身が障害者・寡婦・ひとり親・勤労学生に当たる場合はそれぞれ1人を加え、申告書に障害者として書いた配偶者や扶養親族(16歳未満を含む)がいる場合は1人につき1人(同居特別障害者は2人)を加えます。迷ったら給与明細の扶養人数に合わせてください。")
-                    } else {
-                        Text("2つ以上掛け持ちしている場合、メイン以外は乙欄になります。乙欄は甲欄より税額が高く、扶養人数は反映されません。(「従たる給与についての扶養控除等申告書」を出している場合の減額には対応していません)")
+                        TextField("例:1200", text: $defaultWageText)
+                            .keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                            .accessibilityLabel("時給")
                     }
                 }
-
-                Section("割増率") {
-                    LabeledContent("深夜割増率(%)") { TextField("25", text: $lateNightPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                    LabeledContent("残業割増率(%)") { TextField("25", text: $overtimePercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                    LabeledContent("法定休日割増率(%)") { TextField("35", text: $holidayPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                }
-
                 Section {
                     Picker("締め日", selection: $closingDay) {
                         Text("末日").tag(0)
@@ -157,19 +115,52 @@ struct EmployerProfileFormView: View {
                         Text("翌月").tag(1)
                         Text("翌々月").tag(2)
                     }
-                    Picker("支給日", selection: $paydayDay) {
+                    Picker("給料日", selection: $paydayDay) {
                         Text("末日").tag(0)
                         ForEach(1...31, id: \.self) { Text("\($0)日").tag($0) }
                     }
-                    Picker("支給日が土日祝・年末年始の場合", selection: $paydayAdjustment) {
-                        Text("前営業日に繰り上げ").tag(PaydayAdjustment.beforeBusinessDay)
-                        Text("翌営業日に繰り下げ").tag(PaydayAdjustment.afterBusinessDay)
-                        Text("調整しない").tag(PaydayAdjustment.none)
+                } header: { Text("給料日") }
+                footer: { Text("勤務先の給料日に合わせて設定してください。") }
+
+                Section {
+                    DisclosureGroup("手当・割増などの詳細設定", isExpanded: $showAdvanced) {
+                        Picker("雇用形態", selection: $employmentType) {
+                            ForEach(PayrollConstants.employmentTypes, id: \.self) { Text(LocalizedStringKey($0)) }
+                        }
+                        LabeledContent("所定労働時間(h/日)") {
+                            TextField("8", text: $scheduledHoursText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("交通費(円)") {
+                            TextField("0", text: $defaultTransportText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("その他手当(円)") {
+                            TextField("0", text: $otherAllowanceText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("深夜割増率(%)") {
+                            TextField("25", text: $lateNightPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("残業割増率(%)") {
+                            TextField("25", text: $overtimePercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("法定休日割増率(%)") {
+                            TextField("35", text: $holidayPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        }
+                        Picker("給料日が休日のとき", selection: $paydayAdjustment) {
+                            Text("前営業日に繰り上げ").tag(PaydayAdjustment.beforeBusinessDay)
+                            Text("翌営業日に繰り下げ").tag(PaydayAdjustment.afterBusinessDay)
+                            Text("調整しない").tag(PaydayAdjustment.none)
+                        }
+                        Picker("税額表の区分", selection: $incomeTaxColumn) {
+                            Text("甲欄(メインの勤務先)").tag(IncomeTaxColumn.kou)
+                            Text("乙欄(掛け持ち先)").tag(IncomeTaxColumn.otsu)
+                        }
+                        if incomeTaxColumn == .kou {
+                            Toggle("源泉控除対象配偶者がいる", isOn: $hasSpouseAllowance)
+                            Stepper("扶養親族等の数(配偶者を除く): \(dependentsCount)人", value: $dependentsCount, in: 0...10)
+                        }
+                        Text("税額表の区分や扶養人数は、勤務先の給与明細に合わせて確認できます。")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                } header: {
-                    Text("給与の締め日・支給日")
-                } footer: {
-                    Text("給与タブの「給与の支給予定」と年収の壁の計算に使われます。多くの会社は繰り上げ(前倒し)払いです。年末年始(12月31日〜1月3日)は銀行が休みのため、営業日に含めていません。")
                 }
 
                 if !errors.isEmpty {

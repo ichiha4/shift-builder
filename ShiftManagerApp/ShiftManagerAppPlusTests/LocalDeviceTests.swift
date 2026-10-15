@@ -61,6 +61,33 @@ final class LocalDeviceTests: XCTestCase {
         resumed.detachUser()
     }
 
+    func testPayslipCorrectionKeepsTakeHomeAndGrossSeparateAfterReopening() async throws {
+        let first = ShiftStore(defaults: defaults, remindersEnabled: false)
+        first.attachUser(uid: LocalDeviceTestTransport.accountID)
+        first.recordActualPayment(employer: "Cafe", payDate: "2026-09-25", amount: 48000)
+        try await waitForSaved(first)
+        let id = try XCTUnwrap(first.actualPayments.first?.id)
+        first.detachUser()
+
+        let second = ShiftStore(defaults: defaults, remindersEnabled: false)
+        second.attachUser(uid: LocalDeviceTestTransport.accountID)
+        XCTAssertEqual(second.actualPayments.first?.amount, 48000)
+        XCTAssertNil(second.actualPayments.first?.taxableGross)
+        second.recordActualPayment(employer: "Cafe", payDate: "2026-09-25", amount: 48000, taxableGross: 50000)
+        second.recordActualPayment(employer: "Cafe", payDate: "2026-09-25", amount: 48000, taxableGross: 51000)
+        try await waitForSaved(second)
+        XCTAssertEqual(second.actualPayments.count, 1)
+        XCTAssertEqual(second.actualPayments.first?.id, id)
+        second.detachUser()
+
+        let reopened = ShiftStore(defaults: defaults, remindersEnabled: false)
+        reopened.attachUser(uid: LocalDeviceTestTransport.accountID)
+        XCTAssertEqual(reopened.actualPayments.first?.amount, 48000)
+        XCTAssertEqual(reopened.actualPayments.first?.taxableGross, 51000)
+        XCTAssertEqual(Aggregation.recordedIncome(year: 2026, through: "2026-10-16", payments: reopened.actualPayments).taxableGross, 51000)
+        reopened.detachUser()
+    }
+
     func testCommitCanBeRetriedAfterAcknowledgementWasLost() async throws {
         let transport = LocalDeviceTestTransport(defaults: defaults)
         var snapshot = AccountSnapshot()

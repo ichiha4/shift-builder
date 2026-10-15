@@ -192,7 +192,7 @@ final class ShiftStore: ObservableObject {
     private func forgetLocalAccountData() {
         apply(AccountSnapshot())
         journal = SyncJournal(); invalidJournal = false; pendingSyncCount = 0
-        for key in Key.allData + [Key.cacheOwner, IncomeWallSettings.dependencyKey, IncomeWallSettings.birthDateKey,
+        for key in Key.allData + [Key.cacheOwner, IncomeWallSettings.dependencyKey, IncomeWallSettings.birthDateKey, IncomeWallSettings.annualTargetKey,
                                   "shiftmgr.dismissedShiftFormats"] { defaults.removeObject(forKey: key) }
         if remindersEnabled { NotificationScheduler.cancelAll() }
         onLocalDataWiped?()
@@ -483,12 +483,16 @@ final class ShiftStore: ObservableObject {
 
     /// Upsert by (employer, payDate) — recording the same payday twice corrects the figure
     /// rather than adding a duplicate entry.
-    func recordActualPayment(employer: String, payDate: String, amount: Double) {
+    func recordActualPayment(employer: String, payDate: String, amount: Double? = nil, taxableGross: Double? = nil) {
         guard cloudDataReady, !cloudSyncSuspended else { return }
+        guard amount != nil || taxableGross != nil,
+              amount.map({ $0.isFinite && $0 >= 0 }) ?? true,
+              taxableGross.map({ $0.isFinite && $0 >= 0 }) ?? true else { return }
         if let idx = actualPayments.firstIndex(where: { $0.employer == employer && $0.payDate == payDate }) {
             actualPayments[idx].amount = amount
+            actualPayments[idx].taxableGross = taxableGross
         } else {
-            actualPayments.append(ActualPayment(id: "payment:" + Data((employer + "\n" + payDate).utf8).base64EncodedString(), employer: employer, payDate: payDate, amount: amount))
+            actualPayments.append(ActualPayment(id: "payment:" + Data((employer + "\n" + payDate).utf8).base64EncodedString(), employer: employer, payDate: payDate, amount: amount, taxableGross: taxableGross))
         }
         persist(actualPayments, key: Key.actualPayments)
     }

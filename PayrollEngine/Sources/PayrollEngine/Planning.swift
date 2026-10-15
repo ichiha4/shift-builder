@@ -61,11 +61,12 @@ public enum CashFlowForecast {
         var events: [CashFlowEvent] = []
         let key: (String, String) -> String = { $0 + "\u{0}" + $1 }
         var recordedKeys = Set<String>()
-        for payment in actualPayments where inRange(payment.payDate) && validAmount(payment.amount) {
+        for payment in actualPayments where inRange(payment.payDate) {
+            guard let amount = payment.amount, validAmount(amount) else { continue }
             let paymentKey = key(payment.employer, payment.payDate)
             guard recordedKeys.insert(paymentKey).inserted else { continue }
             events.append(CashFlowEvent(id: "actual:" + payment.id, date: payment.payDate,
-                title: payment.employer, amount: payment.amount, kind: .actualIncome))
+                title: payment.employer, amount: amount, kind: .actualIncome))
         }
 
         // Aggregate by employer + payday. Two periods can roll onto the same date; two copies

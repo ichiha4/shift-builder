@@ -52,7 +52,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var auth: AuthManager
     @EnvironmentObject private var store: ShiftStore
-    @EnvironmentObject private var subscriptions: SubscriptionManager
     @AppStorage(AppearanceKey.isDarkMode) private var isDarkMode = false
     @AppStorage(AppLanguageKey.language) private var appLanguage = "system"
 
@@ -60,6 +59,8 @@ struct SettingsView: View {
     @State private var showSignOutConfirm = false
     @State private var showDeleteAccountConfirm = false
     @State private var copiedSupportEmail = false
+    @State private var showExpenses = false
+    @State private var expenseMonth = String(DateUtils.todayYMD().prefix(7))
     @State private var exportRecovery = false
     @Environment(\.openURL) private var openURL
 
@@ -122,22 +123,21 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Shift Builder Plus") {
-                    NavigationLink { PlusView() } label: {
-                        LabeledContent {
-                            Text(LocalizedStringKey(subscriptions.hasPlus ? "有効" : "無料プラン"))
-                                .font(.caption).foregroundStyle(.secondary)
-                        } label: {
-                            Label("お金の計画", systemImage: "chart.line.uptrend.xyaxis")
-                        }
+                Section("記録と設定") {
+                    NavigationLink { EmployerProfilesView().environmentObject(store) } label: {
+                        Label("勤務先の管理", systemImage: "building.2")
+                    }
+                    NavigationLink { RecordedIncomeWallDetailView(year: DateUtils.calendar.component(.year, from: Date())) } label: {
+                        Label("年収の壁と給与の記録", systemImage: "chart.bar")
+                    }
+                    Button { showExpenses = true } label: {
+                        Label("支出の記録", systemImage: "receipt")
                     }
                 }
 
                 #if LOCAL_DEVICE_TESTING
                 Section("実機テスト") {
                     Text("ログインなしで操作を確認できます。記録はこのテスト用アプリの中に保存されます。")
-                    Text("PlusはXcodeのテスト用購入で確認します。実際の請求はありません。")
-                        .font(.caption).foregroundStyle(.secondary)
                 }
                 #else
                 Section("アカウント") {
@@ -198,6 +198,9 @@ struct SettingsView: View {
                     Button("閉じる") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showExpenses) {
+                ExpensesTab(month: $expenseMonth).environmentObject(store)
+            }
             .sheet(isPresented: $showChangePassword) {
                 ChangePasswordView()
                     .environmentObject(auth)
@@ -219,7 +222,7 @@ struct SettingsView: View {
                 }
                 Button("キャンセル", role: .cancel) {}
             } message: {
-                Text("シフト・給与・支出などすべての記録が完全に削除されます。この操作は取り消せません。Plusの解約はApp Storeのサブスクリプション管理から別途行ってください。")
+                Text("シフト・給与・支出などすべての記録が完全に削除されます。この操作は取り消せません。")
             }
             .alert(
                 "エラー",

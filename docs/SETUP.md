@@ -1,11 +1,14 @@
 # セットアップ
 
-## ローカルの画面・購入テスト
+## ローカルの画面確認
 
 1. `python3 scripts/setup_local_demo.py` を実行します。
 2. `ShiftManagerApp/ShiftManagerApp.xcodeproj` をXcodeで開きます。
 3. `ShiftManagerApp-LocalDevice` SchemeとiPhoneシミュレータを選び、Runします。
-4. StoreKit Configurationは `ShiftBuilderPlus.storekit` を使います。商品が空の場合は設定を確認して「商品情報を再読み込み」を使い、Xcodeから再実行します。
+4. 勤務先と最初のシフトを登録します。別の日付を選んでテンプレートをタップすると保存できます。
+5. 給与画面で給与明細の課税支給額を入力し、ホームの年収カードから自分の年間上限を設定します。
+
+現在の通常画面はサブスク登録を使いません。既存のStoreKit設定・購入テストは、以前の試作を検証するための履歴として残しています。
 
 データはこのアプリのUserDefaultsに保存され、通常のクラウド版とは分離されています。アプリを削除するとデモデータも消えます。本番への移行機能はありません。
 
@@ -13,7 +16,7 @@
 
 無料のApple AccountをXcodeに登録し、iPhoneを接続して信頼と開発者モードの設定を済ませます。アプリ・テストのBundle IDを自分用に変更し、LocalDevice構成のSigning & Capabilitiesで自分のPersonal Teamを選びます。個人のTeam IDは公開ソースには設定していません。
 
-無料署名には有効期限などの制限があります。[Appleの無料アカウント案内](https://developer.apple.com/help/account/basics/about-your-developer-account)。本プロジェクトでは実機へのインストールと購入の通し確認は未完了です。
+無料署名には有効期限などの制限があります。[Appleの無料アカウント案内](https://developer.apple.com/help/account/basics/about-your-developer-account)。本プロジェクトでは実機での通し確認は未完了です。
 
 ## Firebaseを使う通常版
 

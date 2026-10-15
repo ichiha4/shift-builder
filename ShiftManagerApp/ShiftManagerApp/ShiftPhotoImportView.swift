@@ -4,7 +4,6 @@ import UIKit
 
 struct ShiftPhotoImportView: View {
     @EnvironmentObject private var store: ShiftStore
-    @EnvironmentObject private var subscriptions: SubscriptionManager
     @EnvironmentObject private var notifications: NotificationLogStore
     @Environment(\.dismiss) private var dismiss
 
@@ -27,7 +26,6 @@ struct ShiftPhotoImportView: View {
     @State private var error = ""
     @State private var result: ShiftImportPlan?
     @State private var showEmployerForm = false
-    @State private var showPaywall = false
     @State private var readTask: Task<Void, Never>?
     @State private var generation = UUID()
 
@@ -104,17 +102,12 @@ struct ShiftPhotoImportView: View {
         }
         .onChange(of: store.employerProfiles) { _, _ in selectDefaultProfile() }
         .onAppear { selectDefaultProfile() }
-        .task { await subscriptions.refreshAccess() }
         .onDisappear {
             readTask?.cancel(); generation = UUID()
             recognized = nil; photo = nil; rows = []
         }
         .sheet(isPresented: $showEmployerForm) { EmployerProfileFormView(existing: nil).environmentObject(store) }
-        .sheet(isPresented: $showPaywall) {
-            NavigationStack { PlusPaywallView().toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("閉じる") { showPaywall = false } }
-            } }.environmentObject(subscriptions)
-        }
+
     }
 
     private var intro: some View {
@@ -208,8 +201,6 @@ struct ShiftPhotoImportView: View {
             Toggle("日付・時間・休憩・時給を確認しました", isOn: $confirmed)
             Text("読み取りには間違いが含まれることがあります。同じ勤務先・日付・時間の登録済みシフトは追加せず、既存の内容を保ちます。")
                 .font(.caption).foregroundStyle(.secondary)
-            Text("候補の確認は無料。一括登録はPlusで利用できます。")
-                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -219,8 +210,7 @@ struct ShiftPhotoImportView: View {
         } label: {
             HStack {
                 if isSaving { ProgressView().tint(.white) }
-                if subscriptions.hasPlus { Text("\(selectedCount)件をまとめて登録") }
-                else { Text("Plusでまとめて登録") }
+                Text("\(selectedCount)件をまとめて登録")
             }.frame(maxWidth: .infinity)
         }.buttonStyle(.borderedProminent)
             .disabled(!confirmed || selectedCount == 0 || selectedProfile == nil || isSaving || !store.cloudDataReady)
@@ -287,8 +277,6 @@ struct ShiftPhotoImportView: View {
                 var candidate = row.candidate; candidate.breakMinutes = pause; return candidate
             }
             _ = try ShiftImportPlanner.plan(candidates: candidates, profile: profile, existing: store.shifts)
-            await subscriptions.refreshAccess()
-            guard subscriptions.hasPlus else { showPaywall = true; return }
             guard confirmed, selectedProfile?.id == profile.id else { return }
             let saved = try store.importShiftCandidates(candidates, profile: profile)
             for shift in saved.shifts {

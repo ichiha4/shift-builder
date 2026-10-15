@@ -123,7 +123,9 @@ struct SyncConflictView: View {
                 }
             case .actualPayments:
                 if let p = try? decoder.decode(ActualPayment.self, from: record.data) {
-                    Text(verbatim: "\(p.payDate) · \(p.employer) · ¥\(p.amount.formatted())")
+                    Text(verbatim: "\(p.payDate) · \(p.employer)")
+                    if let gross = p.taxableGross { LabeledContent("課税支給額", value: yen(gross)) }
+                    if let amount = p.amount { LabeledContent("手取り", value: yen(amount)) }
                 }
             case .recurringExpenses:
                 if let r = try? decoder.decode(RecurringExpense.self, from: record.data) {

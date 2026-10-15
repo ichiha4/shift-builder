@@ -237,22 +237,24 @@ public struct Deduction: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
-/// What the user actually received on a specific payday, entered from the payday-banner prompt
-/// (see ContentView.swift) — kept separate from the shift-based estimate so recording the real
-/// figure never overwrites or depends on the calculation being exactly right.
+/// Actual figures from a payslip, separate from shift estimates. Older records contain only
+/// take-home `amount`; never reinterpret those as taxable gross for an annual income limit.
 public struct ActualPayment: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var employer: String
     /// "YYYY-MM-DD" — the (already weekend/holiday-adjusted) date this was paid on; together
     /// with `employer` this is the natural key, since a given employer pays out once per date.
     public var payDate: String
-    public var amount: Double
+    public var amount: Double?
+    /// Pay before deductions, excluding non-taxable items, entered from the payslip.
+    public var taxableGross: Double?
 
-    public init(id: String = UUID().uuidString, employer: String, payDate: String, amount: Double) {
+    public init(id: String = UUID().uuidString, employer: String, payDate: String, amount: Double? = nil, taxableGross: Double? = nil) {
         self.id = id
         self.employer = employer
         self.payDate = payDate
         self.amount = amount
+        self.taxableGross = taxableGross
     }
 }
 

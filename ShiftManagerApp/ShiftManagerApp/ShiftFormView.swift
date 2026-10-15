@@ -6,7 +6,7 @@ struct ShiftFormView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
 
-    let date: String
+    @State private var date: String
     let existing: Shift?
 
     @State private var employer: String
@@ -35,7 +35,7 @@ struct ShiftFormView: View {
     }
 
     init(date: String, existing: Shift?) {
-        self.date = date
+        _date = State(initialValue: date)
         self.existing = existing
         if let s = existing {
             _employer = State(initialValue: s.employer)
@@ -101,7 +101,14 @@ struct ShiftFormView: View {
         NavigationStack {
             Form {
                 Section {
-                    LabeledContent("日付", value: DateUtils.formatFullDate(date, locale: locale))
+                    DatePicker("日付", selection: Binding(
+                        get: {
+                            guard let parts = DateUtils.parseYMD(date) else { return Date() }
+                            return DateUtils.date(year: parts.year, month: parts.month, day: parts.day)
+                        },
+                        set: { date = DateUtils.ymd($0) }
+                    ), displayedComponents: .date)
+                    .environment(\.calendar, DateUtils.calendar)
                     employerField
                     if !employer.trimmingCharacters(in: .whitespaces).isEmpty {
                         Button {
@@ -149,14 +156,11 @@ struct ShiftFormView: View {
                     }
                 }
 
-                Section("手当") {
-                    LabeledContent("交通費(円)") { TextField("0", text: $transportText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                    LabeledContent("その他手当(円)") { TextField("0", text: $otherAllowanceText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                    Toggle("この日は法定休日として計算する", isOn: $isStatutoryHoliday)
-                }
-
                 Section {
                     DisclosureGroup("詳細設定(今回だけ変更)", isExpanded: $showAdvanced) {
+                        LabeledContent("交通費(円)") { TextField("0", text: $transportText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                        LabeledContent("その他手当(円)") { TextField("0", text: $otherAllowanceText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
+                        Toggle("この日は法定休日として計算する", isOn: $isStatutoryHoliday)
                         LabeledContent("所定労働時間(h)") { TextField("8", text: $scheduledHoursText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                         LabeledContent("深夜割増率(%)") { TextField("25", text: $lateNightPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                         LabeledContent("残業割増率(%)") { TextField("25", text: $overtimePercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
@@ -164,7 +168,7 @@ struct ShiftFormView: View {
                     }
                 }
 
-                Section("今回の給与予測") {
+                Section("このシフトの給与見込み（控除前）") {
                     LabeledContent("合計(\(String(format: "%.1f", Double(preview.netMinutes) / 60))時間)") {
                         Text(yen(preview.netPay)).font(.headline).foregroundStyle(.green)
                     }
@@ -196,7 +200,11 @@ struct ShiftFormView: View {
             }
             .onChange(of: employer) { _, newValue in applyProfileDefaultsIfNeeded(for: newValue) }
             .onAppear {
-                if existing == nil {
+                if existing == nil, employer.isEmpty, store.employerProfiles.count == 1,
+                   let profile = store.employerProfiles.first {
+                    employer = profile.name
+                    applyProfileDefaultsIfNeeded(for: profile.name, replaceWage: true)
+                } else if existing == nil && employer.isEmpty {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { employerFieldFocused = true }
                 }
             }
@@ -210,9 +218,25 @@ struct ShiftFormView: View {
     }
 
     private var employerField: some View {
-        TextField("例:カフェ○○", text: $employer)
-            .autocorrectionDisabled()
-            .focused($employerFieldFocused)
+        VStack(alignment: .leading, spacing: 10) {
+            TextField("例:カフェ○○", text: $employer)
+                .autocorrectionDisabled().focused($employerFieldFocused)
+                .accessibilityLabel("勤務先名")
+            if existing == nil && !store.employerProfiles.isEmpty {
+                Menu {
+                    ForEach(store.employerProfiles) { profile in
+                        Button(profile.name) {
+                            employer = profile.name
+                            applyProfileDefaultsIfNeeded(for: profile.name, replaceWage: true)
+                            employerFieldFocused = false
+                        }
+                    }
+                } label: {
+                    Label("登録した勤務先から選ぶ", systemImage: "building.2")
+                        .font(.subheadline)
+                }
+            }
+        }
     }
 
     private func segmentRow(_ seg: Binding<SegmentDraft>) -> some View {
@@ -233,13 +257,13 @@ struct ShiftFormView: View {
 
     /// Only prefills for a NEW shift, and only on an exact name match — never overwrites a
     /// value someone is actively editing on an existing shift.
-    private func applyProfileDefaultsIfNeeded(for name: String) {
+    private func applyProfileDefaultsIfNeeded(for name: String, replaceWage: Bool = false) {
         guard existing == nil, let profile = store.employerProfiles.first(where: { $0.name == name }) else { return }
-        if segments.count == 1, segments[0].wageText.isEmpty || segments[0].wageText == "1200", profile.defaultWage > 0 {
+        if segments.count == 1, replaceWage || segments[0].wageText.isEmpty || segments[0].wageText == "1200", profile.defaultWage > 0 {
             segments[0].wageText = FormNumber.text(profile.defaultWage)
         }
-        if profile.defaultTransport > 0 { transportText = FormNumber.text(profile.defaultTransport) }
-        if profile.otherAllowance > 0 { otherAllowanceText = FormNumber.text(profile.otherAllowance) }
+        if replaceWage || profile.defaultTransport > 0 { transportText = FormNumber.text(profile.defaultTransport) }
+        if replaceWage || profile.otherAllowance > 0 { otherAllowanceText = FormNumber.text(profile.otherAllowance) }
         scheduledHoursText = trimmedHours(profile.scheduledMinutes)
         lateNightPercentText = FormNumber.percentageText(profile.lateNightRate)
         overtimePercentText = FormNumber.percentageText(profile.overtimeRate)

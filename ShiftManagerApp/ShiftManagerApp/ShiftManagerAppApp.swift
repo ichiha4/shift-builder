@@ -11,7 +11,6 @@ struct ShiftManagerAppApp: App {
     #else
     @StateObject private var auth = AuthManager(restoreSession: NSClassFromString("XCTestCase") == nil)
     #endif
-    @StateObject private var subscriptions = SubscriptionManager()
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(AppearanceKey.isDarkMode) private var isDarkMode = false
     @AppStorage(AppLanguageKey.language) private var appLanguage = "system"
@@ -83,12 +82,9 @@ struct ShiftManagerAppApp: App {
             .sheet(isPresented: $auth.needsReauthToDelete) {
                 DeleteAccountReauthView().environmentObject(auth).interactiveDismissDisabled(auth.isLoading)
             }
-            .environmentObject(subscriptions)
-            .task { await subscriptions.prepare() }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     store.retryCloudSync()
-                    Task { await subscriptions.refreshAccess() }
                 }
             }
             .environment(\.locale, resolvedLocale ?? Locale.autoupdatingCurrent)
