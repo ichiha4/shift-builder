@@ -166,6 +166,38 @@ public struct EmployerProfile: Codable, Equatable, Identifiable, Sendable {
     public var scheduledMinutes: Int { Int((scheduledHours * 60).rounded()) }
 }
 
+/// A workplace can already have shift templates before its payday profile is configured.
+/// Keep both sources available without inventing a closing day or a payday for history.
+public struct ShiftEmployerChoice: Identifiable, Equatable, Sendable {
+    public var id: String { name }
+    public let name: String
+    public let profile: EmployerProfile?
+    public let latestShift: Shift?
+
+    public static func available(profiles: [EmployerProfile], shifts: [Shift]) -> [Self] {
+        func name(_ value: String) -> String { value.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let names = Set(profiles.map { name($0.name) } + shifts.map { name($0.employer) })
+        let recent = shifts.sorted { $0.date == $1.date ? $0.id < $1.id : $0.date > $1.date }
+        return names.filter { !$0.isEmpty }.sorted().map { employer in
+            Self(name: employer,
+                 profile: profiles.first { name($0.name) == employer },
+                 latestShift: recent.first { name($0.employer) == employer })
+        }
+    }
+
+    /// A history-only employer has no official default wage. Reuse a single common rate;
+    /// mixed rates require entry rather than silently picking one of the template's bands.
+    public var suggestedHourlyWage: Double? {
+        if let profile {
+            return profile.defaultWage.isFinite && profile.defaultWage > 0 ? profile.defaultWage : nil
+        }
+        guard let segments = latestShift?.segments, !segments.isEmpty,
+              let wage = segments.first?.hourlyWage, wage.isFinite, wage > 0,
+              segments.allSatisfy({ $0.hourlyWage == wage }) else { return nil }
+        return wage
+    }
+}
+
 public struct Expense: Codable, Equatable, Identifiable, Sendable {
     public var id: String
     public var date: String

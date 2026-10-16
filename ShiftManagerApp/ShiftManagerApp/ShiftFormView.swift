@@ -92,9 +92,14 @@ struct ShiftFormView: View {
     private var preview: ShiftPayEstimate { PayCalculation.estimateShiftPay(draftShift, allShifts: store.shifts) }
 
     private var matchingProfile: EmployerProfile? {
-        let trimmed = employer.trimmingCharacters(in: .whitespaces)
+        let trimmed = employer.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         return store.employerProfiles.first { $0.name == trimmed }
+    }
+
+    private var employerChoices: [ShiftEmployerChoice] {
+        ShiftEmployerChoice.available(profiles: store.employerProfiles,
+                                      shifts: store.shifts + store.undoableDeletedShifts)
     }
 
     var body: some View {
@@ -200,11 +205,7 @@ struct ShiftFormView: View {
             }
             .onChange(of: employer) { _, newValue in applyProfileDefaultsIfNeeded(for: newValue) }
             .onAppear {
-                if existing == nil, employer.isEmpty, store.employerProfiles.count == 1,
-                   let profile = store.employerProfiles.first {
-                    employer = profile.name
-                    applyProfileDefaultsIfNeeded(for: profile.name, replaceWage: true)
-                } else if existing == nil && employer.isEmpty {
+                if existing == nil && employer.isEmpty && employerChoices.isEmpty {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { employerFieldFocused = true }
                 }
             }
@@ -222,20 +223,47 @@ struct ShiftFormView: View {
             TextField("例:カフェ○○", text: $employer)
                 .autocorrectionDisabled().focused($employerFieldFocused)
                 .accessibilityLabel("勤務先名")
-            if existing == nil && !store.employerProfiles.isEmpty {
+            if existing == nil && !employerChoices.isEmpty {
                 Menu {
-                    ForEach(store.employerProfiles) { profile in
-                        Button(profile.name) {
-                            employer = profile.name
-                            applyProfileDefaultsIfNeeded(for: profile.name, replaceWage: true)
-                            employerFieldFocused = false
+                    let registered = employerChoices.filter { $0.profile != nil }
+                    let history = employerChoices.filter { $0.profile == nil }
+                    if !registered.isEmpty {
+                        Section("登録した勤務先") {
+                            ForEach(registered) { choice in
+                                Button(choice.name) { selectEmployer(choice) }
+                            }
+                        }
+                    }
+                    if !history.isEmpty {
+                        Section("シフトで使った勤務先") {
+                            ForEach(history) { choice in
+                                Button(choice.name) { selectEmployer(choice) }
+                            }
                         }
                     }
                 } label: {
-                    Label("登録した勤務先から選ぶ", systemImage: "building.2")
+                    Label("勤務先から選ぶ", systemImage: "building.2")
                         .font(.subheadline)
                 }
             }
+        }
+    }
+
+    private func selectEmployer(_ choice: ShiftEmployerChoice) {
+        employer = choice.name
+        employerFieldFocused = false
+        if choice.profile != nil {
+            applyProfileDefaultsIfNeeded(for: choice.name, replaceWage: true)
+        } else if let source = choice.latestShift {
+            for index in segments.indices {
+                segments[index].wageText = choice.suggestedHourlyWage.map(FormNumber.text) ?? ""
+            }
+            transportText = FormNumber.text(source.transport)
+            otherAllowanceText = FormNumber.text(source.otherAllowance)
+            scheduledHoursText = trimmedHours(source.scheduledMinutes)
+            lateNightPercentText = FormNumber.percentageText(source.lateNightRate)
+            overtimePercentText = FormNumber.percentageText(source.overtimeRate)
+            holidayPercentText = FormNumber.percentageText(source.holidayRate)
         }
     }
 
@@ -258,8 +286,13 @@ struct ShiftFormView: View {
     /// Only prefills for a NEW shift, and only on an exact name match — never overwrites a
     /// value someone is actively editing on an existing shift.
     private func applyProfileDefaultsIfNeeded(for name: String, replaceWage: Bool = false) {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard existing == nil, let profile = store.employerProfiles.first(where: { $0.name == name }) else { return }
-        if segments.count == 1, replaceWage || segments[0].wageText.isEmpty || segments[0].wageText == "1200", profile.defaultWage > 0 {
+        if replaceWage {
+            for index in segments.indices {
+                segments[index].wageText = profile.defaultWage > 0 ? FormNumber.text(profile.defaultWage) : ""
+            }
+        } else if segments.count == 1, segments[0].wageText.isEmpty || segments[0].wageText == "1200", profile.defaultWage > 0 {
             segments[0].wageText = FormNumber.text(profile.defaultWage)
         }
         if replaceWage || profile.defaultTransport > 0 { transportText = FormNumber.text(profile.defaultTransport) }

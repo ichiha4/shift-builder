@@ -1,6 +1,63 @@
 import XCTest
 @testable import PayrollEngine
 
+final class EmployerChoiceTests: XCTestCase {
+    private func shift(_ id: String, employer: String, date: String = "2026-10-20", wage: Double = 1200) -> Shift {
+        Shift(id: id, date: date, employer: employer,
+              segments: [WorkSegment(startMinute: 540, endMinute: 1020, hourlyWage: wage)])
+    }
+
+    func testMultipleTemplatesIncludeHistoryOnlyEmployersWithoutDuplicateWorkplaces() throws {
+        let profile = EmployerProfile(name: "Cafe", defaultWage: 1300)
+        let choices = ShiftEmployerChoice.available(profiles: [profile], shifts: [
+            shift("cafe-1", employer: "Cafe"), shift("cafe-2", employer: "Cafe"),
+            shift("shop-1", employer: "Shop"), shift("shop-2", employer: "Shop"),
+            shift("hotel-1", employer: "Hotel")
+        ])
+        XCTAssertEqual(choices.map(\.name), ["Cafe", "Hotel", "Shop"])
+        XCTAssertEqual(choices.first?.profile, profile)
+        XCTAssertNil(try XCTUnwrap(choices.first { $0.name == "Shop" }).profile)
+    }
+
+    func testHistoryOnlyAndProfileOnlyWorkplacesRemainSelectable() {
+        XCTAssertEqual(ShiftEmployerChoice.available(profiles: [], shifts: [
+            shift("one", employer: "Cafe"), shift("two", employer: "Shop")
+        ]).map(\.name), ["Cafe", "Shop"])
+        XCTAssertEqual(ShiftEmployerChoice.available(profiles: [EmployerProfile(name: "New Cafe")], shifts: []).map(\.name), ["New Cafe"])
+    }
+
+    func testWhitespaceDoesNotHideOrDuplicateWorkplaces() {
+        let choices = ShiftEmployerChoice.available(profiles: [EmployerProfile(name: "Cafe")], shifts: [
+            shift("one", employer: " Cafe\n"), shift("two", employer: "\n ")
+        ])
+        XCTAssertEqual(choices.map(\.name), ["Cafe"])
+        XCTAssertNotNil(choices.first?.latestShift)
+    }
+
+    func testSavedWageWinsAndUnsetWageDoesNotBorrowAnOldRate() {
+        let history = [shift("one", employer: "Cafe", wage: 1100)]
+        let configured = ShiftEmployerChoice.available(profiles: [EmployerProfile(name: "Cafe", defaultWage: 1300.5)], shifts: history)
+        XCTAssertEqual(configured.first?.suggestedHourlyWage, 1300.5)
+        let unset = ShiftEmployerChoice.available(profiles: [EmployerProfile(name: "Cafe", defaultWage: 0)], shifts: history)
+        XCTAssertNil(unset.first?.suggestedHourlyWage)
+    }
+
+    func testHistoryUsesLatestWorkplaceConditionsRatherThanTemplateOrder() {
+        let choices = ShiftEmployerChoice.available(profiles: [], shifts: [
+            shift("old", employer: "Shop", date: "2026-10-01", wage: 1100),
+            shift("recent", employer: "Shop", date: "2026-10-20", wage: 1450.75)
+        ])
+        XCTAssertEqual(choices.first?.latestShift?.id, "recent")
+        XCTAssertEqual(choices.first?.suggestedHourlyWage, 1450.75)
+    }
+
+    func testMixedWageBandsRequireEntryInsteadOfGuessingOneRate() {
+        var source = shift("split", employer: "Cafe")
+        source.segments.append(WorkSegment(startMinute: 1020, endMinute: 1320, hourlyWage: 1500))
+        XCTAssertNil(ShiftEmployerChoice.available(profiles: [], shifts: [source]).first?.suggestedHourlyWage)
+    }
+}
+
 final class EntryRegressionTests: XCTestCase {
     private func shift(_ id: String = "new", date: String = "2026-10-20", employer: String = "Cafe",
                        start: Int = 540, end: Int = 780, wage: Double = 1200) -> Shift {
