@@ -383,9 +383,9 @@ struct ShiftsTab: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("シフトを削除")
-            // Anchor the popover to the tapped trash button, not the entire calendar screen.
-            // Scope presentation to this row so only the selected shift can show a dialog.
-            .confirmationDialog(
+            // Use a centered alert, independent of the trash button's position on screen.
+            // Only the selected shift presents a confirmation.
+            .alert(
                 "このシフトを削除しますか?",
                 isPresented: Binding(
                     get: { pendingDelete?.id == shift.id },
@@ -393,7 +393,6 @@ struct ShiftsTab: View {
                         if !isPresented && pendingDelete?.id == shift.id { pendingDelete = nil }
                     }
                 ),
-                titleVisibility: .visible,
                 presenting: shift
             ) { target in
                 Button("削除", role: .destructive) {
