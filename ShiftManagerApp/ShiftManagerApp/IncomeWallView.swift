@@ -30,7 +30,7 @@ struct RecordedIncomeWallCard: View {
                     Text(summary.taxableGross > annualTarget ? "設定した上限を超えた金額" : "設定した上限まであと")
                         .font(.caption).foregroundStyle(.secondary)
                     Text(yen(abs(annualTarget - summary.taxableGross)))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(size: 28, weight: .regular, design: .default))
                         .foregroundStyle(summary.taxableGross > annualTarget ? Color.orange : Color.accentColor)
                     ProgressView(value: min(summary.taxableGross, annualTarget), total: annualTarget)
                     HStack {
@@ -40,7 +40,7 @@ struct RecordedIncomeWallCard: View {
                     }.font(.caption).foregroundStyle(.secondary)
                 } else {
                     Text("今年の給与（入力済み）").font(.caption).foregroundStyle(.secondary)
-                    Text(yen(summary.taxableGross)).font(.title2.weight(.bold)).foregroundStyle(.primary)
+                    Text(yen(summary.taxableGross)).font(.title2.weight(.regular)).foregroundStyle(.primary)
                     Text("自分の上限を設定する").font(.subheadline.weight(.semibold)).foregroundStyle(Color.accentColor)
                 }
                 Text("\(String(year))年の支給分・給与明細から入力した金額のみ")

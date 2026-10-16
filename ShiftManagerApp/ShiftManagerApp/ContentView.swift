@@ -377,8 +377,8 @@ private struct OverviewTab: View {
                 }
 
                 Text(showBalance ? yen(payslip.grossTotal) : "••••••••")
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .monospacedDigit().minimumScaleFactor(0.65).lineLimit(1)
+                    .font(.system(size: 40, weight: .regular, design: .default))
+                    .minimumScaleFactor(0.65).lineLimit(1)
                     .foregroundStyle(.white)
                     .contentTransition(.numericText())
                     .padding(.top, 12)

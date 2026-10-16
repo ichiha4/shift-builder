@@ -138,8 +138,8 @@ struct WageTab: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(recordedGross.isEmpty ? "この月に支給される給与見込み" : "この月の給与（入力済み）")
                 .font(.subheadline).foregroundStyle(.secondary)
-            Text(yen(recordedGross.isEmpty ? payslip.grossTotal : recordedGross.reduce(0, +))).font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundStyle(Color.accentColor).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
+            Text(yen(recordedGross.isEmpty ? payslip.grossTotal : recordedGross.reduce(0, +))).font(.system(size: 32, weight: .regular, design: .default))
+                .foregroundStyle(Color.accentColor).minimumScaleFactor(0.6).lineLimit(1)
             if recordedGross.isEmpty {
                 Text("控除前の金額です。給料日に、給与明細の実際の金額を入力できます。")
                     .font(.caption).foregroundStyle(.secondary)
