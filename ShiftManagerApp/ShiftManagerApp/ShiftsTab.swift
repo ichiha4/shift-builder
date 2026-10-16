@@ -9,7 +9,7 @@ struct ShiftsTab: View {
     @Binding var month: String
     @Binding var requestedDate: String?
 
-    @ScaledMetric(relativeTo: .body) private var templateCardWidth: CGFloat = 182
+    @ScaledMetric(relativeTo: .body) private var templateCardWidth: CGFloat = 202
 
     @State private var selectedDate: String
     @State private var showAddSheet = false
@@ -363,10 +363,14 @@ struct ShiftsTab: View {
                 showTemplateSheet = true
             } label: {
                 Label("テンプレートを作成", systemImage: "plus")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .foregroundStyle(Color.accentColor)
-                    .background(Color.accentColor.opacity(0.08), in: Capsule())
+                    .font(.caption.weight(.medium))
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .foregroundStyle(.primary)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.75)
+                    }
                     .frame(minHeight: 44)
                     .contentShape(Rectangle())
             }
@@ -429,7 +433,7 @@ struct ShiftsTab: View {
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 2)
+                        .padding(.top, 3).padding(.bottom, 10)
                     }
                     .padding(.horizontal, -16)
                     .onChange(of: newlySavedTemplateKey) { _, key in
@@ -459,42 +463,58 @@ struct ShiftsTab: View {
     private func formatChip(_ format: ShiftFormat) -> some View {
         let added = isFormatAdded(format)
         let overlaps = !added && ShiftScenario.hasOverlap(format.source.repeated(on: selectedDate), with: store.shifts)
-        let accent: Color = overlaps ? .orange : .accentColor
-        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        let mint = Color(red: 0.40, green: 0.91, blue: 0.73)
+        let signal = overlaps ? Color(red: 1, green: 0.74, blue: 0.43) : mint
+        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
         return Button {
             quickAdd(format)
         } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(format.employer)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 7) {
+                    Image(systemName: "briefcase")
+                        .font(.caption2)
+                        .foregroundStyle(signal)
+                    Text(format.employer)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.88))
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
 
                 if let first = format.segments.first, let last = format.segments.last {
-                    Text("\(ClockUtils.formatClock(first.startMinute))–\(ClockUtils.formatClock(last.endMinute))")
-                        .font(.title3.weight(.regular))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1).minimumScaleFactor(0.8)
+                    HStack(alignment: .center, spacing: 6) {
+                        templateTime("出勤", minute: first.startMinute)
+                        Spacer(minLength: 0)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(signal.opacity(0.7))
+                            .padding(.top, 15)
+                            .accessibilityHidden(true)
+                        Spacer(minLength: 0)
+                        templateTime("退勤", minute: last.endMinute)
+                    }
                 }
+
+                Rectangle().fill(.white.opacity(0.14)).frame(height: 0.5)
 
                 HStack(spacing: 6) {
                     VStack(alignment: .leading, spacing: 2) {
                         if added {
-                            Text("追加済み").foregroundStyle(Color.accentColor)
+                            Text("追加済み").foregroundStyle(signal)
                         } else if overlaps {
-                            Text("時間重複").foregroundStyle(.orange)
+                            Text("時間重複").foregroundStyle(signal)
                         } else if format.segments.count > 1 {
-                            Text("\(format.segments.count)区分").foregroundStyle(.secondary)
+                            Text("\(format.segments.count)区分").foregroundStyle(.white.opacity(0.72))
                         } else if let segment = format.segments.first {
                             HStack(spacing: 3) {
                                 Text("時給")
                                 Text(yen(segment.hourlyWage))
                             }
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.white.opacity(0.72))
                         }
                         if format.source.breakMinutes > 0 {
                             Text("休憩\(format.source.breakMinutes)分")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.white.opacity(0.62))
                         }
                     }
                     .font(.caption2)
@@ -502,21 +522,34 @@ struct ShiftsTab: View {
                     Spacer(minLength: 0)
                     Image(systemName: added ? "checkmark" : (overlaps ? "exclamationmark" : "plus"))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(accent)
+                        .foregroundStyle(added || overlaps ? signal : Color(red: 0.05, green: 0.16, blue: 0.13))
                         .frame(width: 28, height: 28)
-                        .background(accent.opacity(0.1), in: Circle())
+                        .background(added || overlaps ? signal.opacity(0.12) : signal, in: Circle())
+                        .overlay {
+                            Circle().strokeBorder(signal.opacity(added || overlaps ? 0.4 : 0), lineWidth: 0.75)
+                        }
                 }
                 .frame(minHeight: 28)
             }
-            .padding(14)
+            .padding(16)
             .frame(width: templateCardWidth, alignment: .leading)
-            .background(added ? Color.accentColor.opacity(0.06) : Color(.tertiarySystemGroupedBackground), in: shape)
-            .overlay {
-                shape.strokeBorder(added ? Color.accentColor.opacity(0.35) : Color.primary.opacity(0.07), lineWidth: 1)
+            .background {
+                LinearGradient(colors: [Color(red: 0.10, green: 0.13, blue: 0.14), Color(red: 0.045, green: 0.065, blue: 0.06)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .overlay {
+                        RadialGradient(colors: [signal.opacity(added ? 0.25 : 0.14), .clear],
+                                       center: .topTrailing, startRadius: 0, endRadius: 170)
+                    }
             }
+            .clipShape(shape)
+            .overlay {
+                shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.24), signal.opacity(added ? 0.55 : 0.16), .white.opacity(0.07)],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.13), radius: 6, x: 0, y: 4)
             .contentShape(shape)
         }
-        .buttonStyle(TemplateCardButtonStyle())
+        .buttonStyle(TemplateCardButtonStyle(reduceMotion: reduceMotion))
         .disabled(added || overlaps)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
@@ -533,10 +566,25 @@ struct ShiftsTab: View {
         }
     }
 
-    /// Keep status text readable when the card is disabled after adding or overlapping.
+    private func templateTime(_ title: LocalizedStringKey, minute: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.caption2).foregroundStyle(.white.opacity(0.58))
+            Text(ClockUtils.formatClock(minute))
+                .font(.title3.weight(.regular))
+                .foregroundStyle(.white)
+                .lineLimit(1).minimumScaleFactor(0.8)
+        }
+    }
+
+    /// Keep disabled status legible; a small press response confirms the whole card is tappable.
     private struct TemplateCardButtonStyle: ButtonStyle {
+        let reduceMotion: Bool
+
         func makeBody(configuration: Configuration) -> some View {
-            configuration.label.opacity(configuration.isPressed ? 0.75 : 1)
+            configuration.label
+                .opacity(configuration.isPressed ? 0.9 : 1)
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: configuration.isPressed)
         }
     }
 

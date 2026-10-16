@@ -711,3 +711,6 @@
 "登録済みの%lld件は追加していません。" = "Skipped %lld shifts that were already saved.";
 
 "シフトに戻る" = "Back to shifts";
+
+"出勤" = "Start";
+"退勤" = "End";
