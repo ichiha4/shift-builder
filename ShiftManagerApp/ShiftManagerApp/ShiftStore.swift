@@ -1,6 +1,19 @@
 import Foundation
 import Combine
 
+enum ShiftDeletionUndoError: LocalizedError, Equatable {
+    case editingUnavailable, overlappingShift
+
+    var errorDescription: String? {
+        switch self {
+        case .editingUnavailable:
+            return NSLocalizedString("同期の状態を確認して、もう一度お試しください。", comment: "")
+        case .overlappingShift:
+            return NSLocalizedString("同じ時間に別のシフトが登録されています。追加したシフトを確認してください。", comment: "")
+        }
+    }
+}
+
 /// Persists a per-account local journal and syncs record-level changes in Firestore
 /// transactions. Pending edits survive incoming snapshots, offline work and relaunch.
 @MainActor
@@ -13,6 +26,18 @@ final class ShiftStore: ObservableObject {
     @Published private(set) var deductions: [Deduction] = []
     @Published private(set) var actualPayments: [ActualPayment] = []
     @Published private(set) var recurringExpenses: [RecurringExpense] = []
+    @Published private(set) var pendingShiftDeletionCount = 0
+
+    private struct DeletedShiftBackup {
+        let shift: Shift
+        let index: Int
+    }
+    private var deletedShiftBackups: [DeletedShiftBackup] = []
+    private var shiftDeletionUndoDeadline: Date?
+    private var shiftDeletionUndoTask: Task<Void, Never>?
+
+    /// Keep templates available while the deletion can still be undone.
+    var undoableDeletedShifts: [Shift] { deletedShiftBackups.map(\.shift) }
 
     private enum Key {
         static let shifts = "shiftmgr.shifts"
@@ -176,6 +201,7 @@ final class ShiftStore: ObservableObject {
     func isAttached(to uid: String) -> Bool { self.uid == uid && defaults.string(forKey: Key.cacheOwner) == uid }
 
     func detachUser(clearLocalState: Bool = true) {
+        clearShiftDeletionUndo()
         stopObserving?(); stopObserving = nil
         retryTask?.cancel(); retryTask = nil
         uid = nil; generation = UUID(); flushRunning = false
@@ -278,6 +304,7 @@ final class ShiftStore: ObservableObject {
     /// A concurrent change retries the read/backup; no stale local copy is used for recovery.
     func prepareAccountDeletion() async throws {
         guard let uid else { throw CloudSyncFailure.documentRemoved }
+        clearShiftDeletionUndo()
         let token = generation
         cloudSyncSuspended = true; cloudDataReady = false
         stopObserving?(); stopObserving = nil
@@ -369,6 +396,73 @@ final class ShiftStore: ObservableObject {
         guard cloudDataReady, !cloudSyncSuspended else { return }
         shifts.removeAll { $0.id == id }
         persist(shifts, key: Key.shifts)
+    }
+
+    /// Delete immediately, retaining the original records for one five-second undo batch.
+    /// Each consecutive deletion restarts the deadline; expired batches never come back.
+    @discardableResult
+    func deleteShiftWithUndo(id: String, now: Date = Date()) -> Bool {
+        guard cloudDataReady, !cloudSyncSuspended,
+              let index = shifts.firstIndex(where: { $0.id == id }) else { return false }
+        expireShiftDeletionUndo(now: now)
+        let deleted = shifts[index]
+        deleteShift(id: id)
+        guard !shifts.contains(where: { $0.id == id }) else { return false }
+        deletedShiftBackups.append(DeletedShiftBackup(shift: deleted, index: index))
+        pendingShiftDeletionCount = deletedShiftBackups.count
+        if remindersEnabled { NotificationScheduler.cancelReminder(for: id) }
+
+        shiftDeletionUndoTask?.cancel()
+        let deadline = now.addingTimeInterval(5)
+        shiftDeletionUndoDeadline = deadline
+        shiftDeletionUndoTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            guard !Task.isCancelled, let self, self.shiftDeletionUndoDeadline == deadline else { return }
+            self.clearShiftDeletionUndo()
+        }
+        return true
+    }
+
+    /// Restore the complete batch in one edit, with the original IDs and values.
+    /// A new overlapping shift blocks restoration rather than silently double-booking work.
+    @discardableResult
+    func undoShiftDeletions(now: Date = Date()) throws -> [Shift] {
+        expireShiftDeletionUndo(now: now)
+        guard !deletedShiftBackups.isEmpty else { return [] }
+        guard cloudDataReady, !cloudSyncSuspended else { throw ShiftDeletionUndoError.editingUnavailable }
+        var proposed = shifts
+        var restored: [Shift] = []
+        for backup in deletedShiftBackups.reversed() {
+            // An incoming record with the same ID wins; never overwrite its newer values.
+            guard !proposed.contains(where: { $0.id == backup.shift.id }) else { continue }
+            guard !ShiftScenario.hasOverlap(backup.shift, with: proposed) else {
+                throw ShiftDeletionUndoError.overlappingShift
+            }
+            proposed.insert(backup.shift, at: min(backup.index, proposed.count))
+            restored.append(backup.shift)
+        }
+        if !restored.isEmpty {
+            shifts = proposed
+            persist(shifts, key: Key.shifts)
+            guard restored.allSatisfy({ shifts.contains($0) }) else { throw ShiftDeletionUndoError.editingUnavailable }
+            if remindersEnabled {
+                for shift in restored { NotificationScheduler.scheduleReminder(for: shift) }
+            }
+        }
+        clearShiftDeletionUndo()
+        return restored
+    }
+
+    func expireShiftDeletionUndo(now: Date = Date()) {
+        if let deadline = shiftDeletionUndoDeadline, now >= deadline { clearShiftDeletionUndo() }
+    }
+
+    private func clearShiftDeletionUndo() {
+        shiftDeletionUndoTask?.cancel()
+        shiftDeletionUndoTask = nil
+        shiftDeletionUndoDeadline = nil
+        deletedShiftBackups.removeAll()
+        pendingShiftDeletionCount = 0
     }
 
     // MARK: - Employer profiles

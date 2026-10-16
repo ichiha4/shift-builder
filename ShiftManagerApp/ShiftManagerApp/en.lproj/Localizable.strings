@@ -34,6 +34,14 @@
 "サブスクや家賃など、毎月自動で発生する支出を登録できます。" = "Register subscriptions, rent, and other expenses that occur automatically every month.";
 "シフト" = "Shifts";
 "シフトを削除しました" = "Shift deleted";
+"削除しました" = "Deleted";
+"%lld件削除しました" = "%lld shifts deleted";
+"元に戻す" = "Undo";
+"直前に削除したシフトをまとめて戻します" = "Restore all shifts in the recent deletion batch";
+"シフトを元に戻しました" = "Shift restored";
+"シフトを元に戻せません" = "Unable to restore shifts";
+"同期の状態を確認して、もう一度お試しください。" = "Check the sync status and try again.";
+"同じ時間に別のシフトが登録されています。追加したシフトを確認してください。" = "Another shift is now scheduled at that time. Check the shift you added.";
 "シフトを更新しました" = "Shift updated";
 "シフトを編集" = "Edit Shift";
 "シフトを追加" = "Add Shift";

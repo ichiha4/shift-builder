@@ -4,6 +4,7 @@ struct ShiftsTab: View {
     @EnvironmentObject var store: ShiftStore
     @EnvironmentObject var notifications: NotificationLogStore
     @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
     @Binding var month: String
     @Binding var requestedDate: String?
 
@@ -17,14 +18,26 @@ struct ShiftsTab: View {
     /// shift into a list further down the card, which is easy to miss, so the haptic is the
     /// confirmation that the tap registered.
     @State private var quickAddCount = 0
-    @State private var pendingDelete: Shift?
-    @State private var quickAddError: String?
+    private struct ActionError {
+        let title: String
+        let message: String
+    }
+    @State private var actionError: ActionError?
 
-    private func confirmDelete(_ shift: Shift) {
-        store.deleteShift(id: shift.id)
-        NotificationScheduler.cancelReminder(for: shift.id)
+    private func deleteShift(_ shift: Shift) {
+        guard store.deleteShiftWithUndo(id: shift.id) else { return }
         notifications.log(kind: .deleted, title: "シフトを削除しました", message: "\(shift.employer)・\(DateUtils.formatFullDate(shift.date))")
         if editingShift?.id == shift.id { editingShift = nil }
+    }
+
+    private func undoDeletion() {
+        do {
+            for shift in try store.undoShiftDeletions() {
+                notifications.log(kind: .added, title: "シフトを元に戻しました", message: "\(shift.employer)・\(DateUtils.formatFullDate(shift.date, locale: locale))")
+            }
+        } catch {
+            actionError = ActionError(title: "シフトを元に戻せません", message: error.localizedDescription)
+        }
     }
 
     /// A day is always selected — there's no "nothing selected" state to fall back to a
@@ -64,7 +77,7 @@ struct ShiftsTab: View {
     /// under the user's finger while adding the same pattern across several calendar dates.
     private var recentFormats: [ShiftFormat] {
         var seen: [String: ShiftFormat] = [:]
-        for shift in store.shifts.sorted(by: { $0.date > $1.date }) {
+        for shift in (store.shifts + store.undoableDeletedShifts).sorted(by: { $0.date > $1.date }) {
             let key = Self.formatKey(shift)
             if seen[key] == nil {
                 seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments, source: shift)
@@ -97,7 +110,7 @@ struct ShiftsTab: View {
         let shift = format.source.repeated(on: selectedDate)
         let errors = Validation.validateShift(shift, existing: store.shifts)
         guard errors.isEmpty else {
-            quickAddError = errors.joined(separator: "\n")
+            actionError = ActionError(title: "シフトを追加できません", message: errors.joined(separator: "\n"))
             return
         }
         store.addShift(shift)
@@ -131,7 +144,11 @@ struct ShiftsTab: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("シフト").font(.title2.weight(.bold))
+                    if store.pendingShiftDeletionCount > 0 {
+                        deletionUndoBanner
+                    } else {
+                        Text("シフト").font(.title2.weight(.bold))
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -146,7 +163,13 @@ struct ShiftsTab: View {
                 let today = DateUtils.todayYMD()
                 selectedDate = today.hasPrefix(newMonth) ? today : newMonth + "-01"
             }
-            .onAppear { selectRequestedDate() }
+            .onAppear {
+                store.expireShiftDeletionUndo()
+                selectRequestedDate()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { store.expireShiftDeletionUndo() }
+            }
             .onChange(of: requestedDate) { _, _ in selectRequestedDate() }
             .sheet(isPresented: $showAddSheet) {
                 ShiftFormView(date: selectedDate, existing: nil)
@@ -158,15 +181,37 @@ struct ShiftsTab: View {
                     .environmentObject(store)
                     .environmentObject(notifications)
             }
-            .alert("シフトを追加できません", isPresented: Binding(
-                get: { quickAddError != nil },
-                set: { if !$0 { quickAddError = nil } }
-            )) {
-                Button("閉じる", role: .cancel) { quickAddError = nil }
-            } message: {
-                Text(LocalizedStringKey(quickAddError ?? ""))
+            .alert(LocalizedStringKey(actionError?.title ?? ""), isPresented: Binding(
+                get: { actionError != nil },
+                set: { if !$0 { actionError = nil } }
+            ), presenting: actionError) { _ in
+                Button("閉じる", role: .cancel) { actionError = nil }
+            } message: { error in
+                Text(LocalizedStringKey(error.message))
             }
         }
+    }
+
+    /// Replace only the navigation title, leaving calendar and template positions unchanged.
+    private var deletionUndoBanner: some View {
+        HStack(spacing: 10) {
+            Group {
+                if store.pendingShiftDeletionCount == 1 {
+                    Text("削除しました")
+                } else {
+                    Text("\(store.pendingShiftDeletionCount)件削除しました")
+                }
+            }
+            .font(.caption).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8)
+            Button(action: undoDeletion) {
+                Text("元に戻す")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(Color.accentColor)
+                    .frame(minHeight: 44).contentShape(Rectangle())
+            }
+                .buttonStyle(.plain)
+                .accessibilityHint("直前に削除したシフトをまとめて戻します")
+        }
+        .frame(height: 44)
     }
 
     private var monthNav: some View {
@@ -371,10 +416,8 @@ struct ShiftsTab: View {
             }
             .buttonStyle(.plain)
 
-            // Deleting asks first: this button sits a few points from the row that opens the
-            // editor, so a near-miss used to destroy a shift outright with nothing to undo it.
             Button {
-                pendingDelete = shift
+                deleteShift(shift)
             } label: {
                 Image(systemName: "trash")
                     .foregroundStyle(.secondary)
@@ -383,26 +426,6 @@ struct ShiftsTab: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("シフトを削除")
-            // Use a centered alert, independent of the trash button's position on screen.
-            // Only the selected shift presents a confirmation.
-            .alert(
-                "このシフトを削除しますか?",
-                isPresented: Binding(
-                    get: { pendingDelete?.id == shift.id },
-                    set: { isPresented in
-                        if !isPresented && pendingDelete?.id == shift.id { pendingDelete = nil }
-                    }
-                ),
-                presenting: shift
-            ) { target in
-                Button("削除", role: .destructive) {
-                    confirmDelete(target)
-                    pendingDelete = nil
-                }
-                Button("キャンセル", role: .cancel) { pendingDelete = nil }
-            } message: { target in
-                Text("\(target.employer)・\(DateUtils.formatFullDate(target.date, locale: locale))")
-            }
         }
         .padding(.vertical, 8)
     }
