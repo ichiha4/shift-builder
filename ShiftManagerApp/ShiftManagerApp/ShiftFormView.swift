@@ -225,21 +225,8 @@ struct ShiftFormView: View {
                 .accessibilityLabel("勤務先名")
             if existing == nil && !employerChoices.isEmpty {
                 Menu {
-                    let registered = employerChoices.filter { $0.profile != nil }
-                    let history = employerChoices.filter { $0.profile == nil }
-                    if !registered.isEmpty {
-                        Section("登録した勤務先") {
-                            ForEach(registered) { choice in
-                                Button(choice.name) { selectEmployer(choice) }
-                            }
-                        }
-                    }
-                    if !history.isEmpty {
-                        Section("シフトで使った勤務先") {
-                            ForEach(history) { choice in
-                                Button(choice.name) { selectEmployer(choice) }
-                            }
-                        }
+                    ForEach(employerChoices) { choice in
+                        Button(choice.name) { selectEmployer(choice) }
                     }
                 } label: {
                     Label("勤務先から選ぶ", systemImage: "building.2")

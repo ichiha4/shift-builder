@@ -86,8 +86,6 @@
 "割増率" = "Premium Rates";
 "勤務先" = "Employer";
 "勤務先から選ぶ" = "Choose employer";
-"登録した勤務先" = "Saved employers";
-"シフトで使った勤務先" = "Employers from shift history";
 "勤務先ごとに自動計算・国税庁の税額表に基づく" = "Auto-calculated per employer, based on the National Tax Agency's tax tables";
 "勤務先の管理" = "Manage Employers";
 "勤務先はまだ登録されていません" = "No employers registered yet";
