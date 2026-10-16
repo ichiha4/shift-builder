@@ -18,6 +18,7 @@ enum SupportInfo {
     static let email = "support@example.invalid"
     static let supportURL = URL(string: "https://github.com/ichiha4/shift-builder/issues")!
     static let privacyPolicyURL = URL(string: "https://github.com/ichiha4/shift-builder/blob/main/docs/PRIVACY.md")!
+    static let termsURL = URL(string: "https://github.com/ichiha4/shift-builder/blob/main/docs/TERMS.md")!
 
     static var versionString: String {
         let info = Bundle.main.infoDictionary
@@ -181,6 +182,9 @@ struct SettingsView: View {
                     }
                     Link(destination: SupportInfo.privacyPolicyURL) {
                         Label("プライバシーポリシー", systemImage: "hand.raised")
+                    }
+                    Link(destination: SupportInfo.termsURL) {
+                        Label("利用規約", systemImage: "doc.text")
                     }
                     LabeledContent("バージョン", value: SupportInfo.versionString)
                 }

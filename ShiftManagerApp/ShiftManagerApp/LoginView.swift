@@ -132,6 +132,13 @@ struct LoginView: View {
                     .frame(height: 48)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
+
+                HStack(spacing: 20) {
+                    Link("プライバシーポリシー", destination: SupportInfo.privacyPolicyURL)
+                    Link("利用規約", destination: SupportInfo.termsURL)
+                }
+                .font(.caption)
+                .padding(.vertical, 8)
             }
             .padding(24)
             // Without the cap, the sign-in fields and both provider buttons stretch the full
