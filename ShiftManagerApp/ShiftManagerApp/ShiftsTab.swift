@@ -139,17 +139,22 @@ struct ShiftsTab: View {
                     dayDetailCard
                 }
                 .padding(16)
+                // Leave room just above the month label without moving the calendar
+                // when the temporary undo card appears or expires.
+                .padding(.top, 24)
                 .readableColumn()
             }
             .background(Color(.systemGroupedBackground))
+            .overlay(alignment: .top) {
+                if store.pendingShiftDeletionCount > 0, let deadline = store.shiftDeletionUndoDeadline {
+                    deletionUndoBanner(deadline: deadline)
+                        .padding(.horizontal, 24)
+                }
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    if store.pendingShiftDeletionCount > 0, let deadline = store.shiftDeletionUndoDeadline {
-                        deletionUndoBanner(deadline: deadline)
-                    } else {
-                        Text("シフト").font(.title2.weight(.bold))
-                    }
+                    Text("シフト").font(.title2.weight(.bold))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -193,7 +198,7 @@ struct ShiftsTab: View {
         }
     }
 
-    /// Replace only the navigation title, leaving calendar and template positions unchanged.
+    /// A framed card immediately above the month, independent of the scrolling content.
     private func deletionUndoBanner(deadline: Date) -> some View {
         // Read the store's actual deadline on every frame, including after a tab switch.
         // No separate view timer can drift from or restart the restoration window.
@@ -201,7 +206,7 @@ struct ShiftsTab: View {
             let remaining = min(ShiftStore.shiftDeletionUndoDuration, max(0, deadline.timeIntervalSince(context.date)))
             let seconds = Int(ceil(remaining))
             let progress = min(1, remaining / ShiftStore.shiftDeletionUndoDuration)
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     Group {
                         if store.pendingShiftDeletionCount == 1 {
@@ -210,7 +215,7 @@ struct ShiftsTab: View {
                             Text("\(store.pendingShiftDeletionCount)件削除しました")
                         }
                     }
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.subheadline.weight(.medium)).foregroundStyle(.primary)
                     .lineLimit(1).minimumScaleFactor(0.8)
                     HStack(spacing: 6) {
                         Capsule()
@@ -219,24 +224,34 @@ struct ShiftsTab: View {
                                 Capsule().fill(Color.accentColor)
                                     .scaleEffect(x: progress, y: 1, anchor: .leading)
                             }
-                            .frame(width: 70, height: 3)
+                            .frame(width: 64, height: 3)
                             .accessibilityHidden(true)
                         Text("あと\(seconds)秒")
-                            .font(.caption2).foregroundStyle(.secondary)
+                            .font(.caption).foregroundStyle(.secondary)
                             .lineLimit(1).minimumScaleFactor(0.8)
                             .accessibilityLabel("元に戻せる残り時間、\(seconds)秒")
                     }
                 }
-                .frame(width: 145, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 Button(action: undoDeletion) {
                     Text("元に戻す")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 10).padding(.vertical, 8)
+                        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                         .frame(minHeight: 44).contentShape(Rectangle())
                 }
                     .buttonStyle(.plain)
                     .accessibilityHint("直前に削除したシフトをまとめて戻します")
             }
             .frame(height: 44)
+            .padding(.horizontal, 12).padding(.vertical, 2)
+            .frame(maxWidth: 280)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.07), radius: 5, y: 2)
         }
     }
 

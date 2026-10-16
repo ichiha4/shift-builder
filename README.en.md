@@ -9,7 +9,7 @@ An iOS shift and pay tracker for students and hourly workers. Reuse recorded shi
 ## The core experience
 
 - **Two actions to add a usual shift:** select a calendar date, then tap a template. The shift saves immediately. Added patterns receive a checkmark; overlapping work is blocked. Template order stays stable during repeated entry.
-- **One-tap deletion with undo:** remove a shift immediately, then restore it from the five-second Undo action at the top. A countdown and shrinking bar show the time left to undo. Each consecutive deletion restarts the five-second window for the whole batch; the calendar stays in place.
+- **One-tap deletion with undo:** remove a shift immediately, then restore it from the five-second Undo card just above the month heading. A countdown and shrinking bar show the time left to undo. Each consecutive deletion restarts the five-second window for the whole batch; the calendar stays in place.
 - **A home screen worth opening:** next month's estimated gross pay uses employer-specific closing days, paydays, and holiday adjustments. The chart shows cumulative scheduled payouts, alongside the next shift and an option to hide the headline amount.
 - **A reason to return on payday:** a rotating coin banner invites the user to enter taxable gross from their payslip. Recorded calendar-year earnings and the remaining amount below their chosen limit update together. Take-home pay is optional and stored separately.
 
