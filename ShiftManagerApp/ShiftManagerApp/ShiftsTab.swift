@@ -5,6 +5,7 @@ struct ShiftsTab: View {
     @EnvironmentObject var notifications: NotificationLogStore
     @Environment(\.locale) private var locale
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var month: String
     @Binding var requestedDate: String?
 
@@ -144,8 +145,8 @@ struct ShiftsTab: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    if store.pendingShiftDeletionCount > 0 {
-                        deletionUndoBanner
+                    if store.pendingShiftDeletionCount > 0, let deadline = store.shiftDeletionUndoDeadline {
+                        deletionUndoBanner(deadline: deadline)
                     } else {
                         Text("シフト").font(.title2.weight(.bold))
                     }
@@ -193,25 +194,50 @@ struct ShiftsTab: View {
     }
 
     /// Replace only the navigation title, leaving calendar and template positions unchanged.
-    private var deletionUndoBanner: some View {
-        HStack(spacing: 10) {
-            Group {
-                if store.pendingShiftDeletionCount == 1 {
-                    Text("削除しました")
-                } else {
-                    Text("\(store.pendingShiftDeletionCount)件削除しました")
+    private func deletionUndoBanner(deadline: Date) -> some View {
+        // Read the store's actual deadline on every frame, including after a tab switch.
+        // No separate view timer can drift from or restart the restoration window.
+        TimelineView(.animation(minimumInterval: reduceMotion ? 1 : 1.0 / 30)) { context in
+            let remaining = min(ShiftStore.shiftDeletionUndoDuration, max(0, deadline.timeIntervalSince(context.date)))
+            let seconds = Int(ceil(remaining))
+            let progress = min(1, remaining / ShiftStore.shiftDeletionUndoDuration)
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Group {
+                        if store.pendingShiftDeletionCount == 1 {
+                            Text("削除しました")
+                        } else {
+                            Text("\(store.pendingShiftDeletionCount)件削除しました")
+                        }
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                    HStack(spacing: 6) {
+                        Capsule()
+                            .fill(Color.accentColor.opacity(0.16))
+                            .overlay(alignment: .leading) {
+                                Capsule().fill(Color.accentColor)
+                                    .scaleEffect(x: progress, y: 1, anchor: .leading)
+                            }
+                            .frame(width: 70, height: 3)
+                            .accessibilityHidden(true)
+                        Text("あと\(seconds)秒")
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .lineLimit(1).minimumScaleFactor(0.8)
+                            .accessibilityLabel("元に戻せる残り時間、\(seconds)秒")
+                    }
                 }
+                .frame(width: 145, alignment: .leading)
+                Button(action: undoDeletion) {
+                    Text("元に戻す")
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(Color.accentColor)
+                        .frame(minHeight: 44).contentShape(Rectangle())
+                }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("直前に削除したシフトをまとめて戻します")
             }
-            .font(.caption).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8)
-            Button(action: undoDeletion) {
-                Text("元に戻す")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(Color.accentColor)
-                    .frame(minHeight: 44).contentShape(Rectangle())
-            }
-                .buttonStyle(.plain)
-                .accessibilityHint("直前に削除したシフトをまとめて戻します")
+            .frame(height: 44)
         }
-        .frame(height: 44)
     }
 
     private var monthNav: some View {

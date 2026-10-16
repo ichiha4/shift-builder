@@ -37,6 +37,8 @@
 "削除しました" = "Deleted";
 "%lld件削除しました" = "%lld shifts deleted";
 "元に戻す" = "Undo";
+"あと%lld秒" = "%lld s left";
+"元に戻せる残り時間、%lld秒" = "%lld seconds left to undo";
 "直前に削除したシフトをまとめて戻します" = "Restore all shifts in the recent deletion batch";
 "シフトを元に戻しました" = "Shift restored";
 "シフトを元に戻せません" = "Unable to restore shifts";

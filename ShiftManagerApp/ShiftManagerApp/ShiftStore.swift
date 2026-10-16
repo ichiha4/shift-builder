@@ -27,13 +27,14 @@ final class ShiftStore: ObservableObject {
     @Published private(set) var actualPayments: [ActualPayment] = []
     @Published private(set) var recurringExpenses: [RecurringExpense] = []
     @Published private(set) var pendingShiftDeletionCount = 0
+    @Published private(set) var shiftDeletionUndoDeadline: Date?
+    static let shiftDeletionUndoDuration: TimeInterval = 5
 
     private struct DeletedShiftBackup {
         let shift: Shift
         let index: Int
     }
     private var deletedShiftBackups: [DeletedShiftBackup] = []
-    private var shiftDeletionUndoDeadline: Date?
     private var shiftDeletionUndoTask: Task<Void, Never>?
 
     /// Keep templates available while the deletion can still be undone.
@@ -413,10 +414,10 @@ final class ShiftStore: ObservableObject {
         if remindersEnabled { NotificationScheduler.cancelReminder(for: id) }
 
         shiftDeletionUndoTask?.cancel()
-        let deadline = now.addingTimeInterval(5)
+        let deadline = now.addingTimeInterval(Self.shiftDeletionUndoDuration)
         shiftDeletionUndoDeadline = deadline
         shiftDeletionUndoTask = Task { [weak self] in
-            do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            do { try await Task.sleep(for: .seconds(Self.shiftDeletionUndoDuration)) } catch { return }
             guard !Task.isCancelled, let self, self.shiftDeletionUndoDeadline == deadline else { return }
             self.clearShiftDeletionUndo()
         }

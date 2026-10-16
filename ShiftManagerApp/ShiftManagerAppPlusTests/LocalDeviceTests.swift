@@ -173,11 +173,13 @@ final class ShiftDeletionUndoTests: XCTestCase {
         XCTAssertTrue(store.deleteShiftWithUndo(id: first.id, now: start))
         XCTAssertEqual(store.shifts, [second])
         XCTAssertEqual(store.pendingShiftDeletionCount, 1)
+        XCTAssertEqual(store.shiftDeletionUndoDeadline, start.addingTimeInterval(5))
         XCTAssertEqual(store.undoableDeletedShifts, [first])
         XCTAssertLessThan(Aggregation.calculateMonthlyPay(store.shifts, classifications: store.classifications).grossTotal, originalPay)
         XCTAssertEqual(try store.undoShiftDeletions(now: start.addingTimeInterval(1)), [first])
         XCTAssertEqual(store.shifts, original)
         XCTAssertEqual(store.pendingShiftDeletionCount, 0)
+        XCTAssertNil(store.shiftDeletionUndoDeadline)
         XCTAssertEqual(Aggregation.calculateMonthlyPay(store.shifts, classifications: store.classifications).grossTotal, originalPay)
         try await waitForSaved(store)
         store.detachUser()
@@ -190,9 +192,11 @@ final class ShiftDeletionUndoTests: XCTestCase {
         store.addShift(first); store.addShift(second)
         XCTAssertTrue(store.deleteShiftWithUndo(id: first.id, now: start))
         XCTAssertTrue(store.deleteShiftWithUndo(id: second.id, now: start.addingTimeInterval(4)))
+        XCTAssertEqual(store.shiftDeletionUndoDeadline, start.addingTimeInterval(9))
         store.expireShiftDeletionUndo(now: start.addingTimeInterval(5.5))
         XCTAssertTrue(store.shifts.isEmpty)
         XCTAssertEqual(store.pendingShiftDeletionCount, 2)
+        XCTAssertEqual(store.shiftDeletionUndoDeadline, start.addingTimeInterval(9))
         XCTAssertEqual(Set(try store.undoShiftDeletions(now: start.addingTimeInterval(6)).map(\.id)), [first.id, second.id])
         XCTAssertEqual(store.shifts, [first, second])
     }
@@ -204,6 +208,7 @@ final class ShiftDeletionUndoTests: XCTestCase {
         XCTAssertTrue(try store.undoShiftDeletions(now: start.addingTimeInterval(5)).isEmpty)
         XCTAssertTrue(store.shifts.isEmpty)
         XCTAssertEqual(store.pendingShiftDeletionCount, 0)
+        XCTAssertNil(store.shiftDeletionUndoDeadline)
     }
 
     func testUndoBannerExpiresWithoutAnotherAction() async throws {
@@ -212,6 +217,7 @@ final class ShiftDeletionUndoTests: XCTestCase {
         XCTAssertTrue(store.deleteShiftWithUndo(id: "first"))
         try await Task.sleep(for: .milliseconds(5200))
         XCTAssertEqual(store.pendingShiftDeletionCount, 0)
+        XCTAssertNil(store.shiftDeletionUndoDeadline)
         XCTAssertTrue(store.undoableDeletedShifts.isEmpty)
         XCTAssertTrue(store.shifts.isEmpty)
     }
@@ -237,6 +243,7 @@ final class ShiftDeletionUndoTests: XCTestCase {
         XCTAssertTrue(store.deleteShiftWithUndo(id: "first", now: start))
         store.detachUser(clearLocalState: false)
         XCTAssertEqual(store.pendingShiftDeletionCount, 0)
+        XCTAssertNil(store.shiftDeletionUndoDeadline)
         XCTAssertTrue(try store.undoShiftDeletions(now: start.addingTimeInterval(1)).isEmpty)
         XCTAssertTrue(store.shifts.isEmpty)
     }
