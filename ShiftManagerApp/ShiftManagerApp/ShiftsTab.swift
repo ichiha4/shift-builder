@@ -9,6 +9,8 @@ struct ShiftsTab: View {
     @Binding var month: String
     @Binding var requestedDate: String?
 
+    @ScaledMetric(relativeTo: .body) private var templateCardWidth: CGFloat = 182
+
     @State private var selectedDate: String
     @State private var showAddSheet = false
     @State private var showTemplateSheet = false
@@ -304,27 +306,18 @@ struct ShiftsTab: View {
     /// always selected (see `init`), so this card is always showing something rather than only
     /// appearing once the user taps a day.
     private var dayDetailCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                HStack(spacing: 6) {
-                    Text(DateUtils.formatFullDate(selectedDate, locale: locale))
-                        .font(.title3).fontWeight(.bold)
-                    if selectedDate == DateUtils.todayYMD() {
-                        Text("今日")
-                            .font(.caption2).fontWeight(.bold)
-                            .padding(.horizontal, 7).padding(.vertical, 2)
-                            .background(Color.accentColor.opacity(0.18))
-                            .foregroundStyle(Color.accentColor)
-                            .clipShape(Capsule())
-                    }
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
+                Text(DateUtils.formatFullDate(selectedDate, locale: locale))
+                    .font(.title3.weight(.semibold))
+                if selectedDate == DateUtils.todayYMD() {
+                    Text("今日")
+                        .font(.caption2.weight(.medium))
+                        .padding(.horizontal, 7).padding(.vertical, 3)
+                        .background(Color.accentColor.opacity(0.1), in: Capsule())
+                        .foregroundStyle(Color.accentColor)
                 }
-                Spacer()
-                Button {
-                    showAddSheet = true
-                } label: {
-                    Label("追加", systemImage: "plus.circle.fill")
-                }
-                .font(.subheadline)
+                Spacer(minLength: 0)
             }
             formatQuickAddRow
             if dayShifts.isEmpty {
@@ -363,76 +356,102 @@ struct ShiftsTab: View {
         return "\(span)・\(segments.count)区分"
     }
 
-    private var formatQuickAddRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 5) {
-                Image(systemName: "bolt.fill").font(.system(size: 10))
-                Text("テンプレート").font(.caption).fontWeight(.semibold)
-                if !store.shiftTemplates.isEmpty {
-                    Menu {
-                        Section("削除するテンプレート") {
-                            ForEach(store.shiftTemplates) { template in
-                                Button(role: .destructive) {
-                                    let pattern = template.pattern
-                                    templateToDelete = ShiftFormat(id: template.fingerprint, employer: pattern.employer,
-                                                                  segments: pattern.segments, source: pattern, templateID: template.id)
-                                } label: {
-                                    Label("\(template.pattern.employer)・\(chipSummary(template.pattern.segments))", systemImage: "trash")
-                                }
+    private var templateControls: some View {
+        HStack(spacing: 2) {
+            Button {
+                newlySavedTemplateKey = nil
+                showTemplateSheet = true
+            } label: {
+                Label("テンプレートを作成", systemImage: "plus")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .foregroundStyle(Color.accentColor)
+                    .background(Color.accentColor.opacity(0.08), in: Capsule())
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if !store.shiftTemplates.isEmpty {
+                Menu {
+                    Section("削除するテンプレート") {
+                        ForEach(store.shiftTemplates) { template in
+                            Button(role: .destructive) {
+                                let pattern = template.pattern
+                                templateToDelete = ShiftFormat(id: template.fingerprint, employer: pattern.employer,
+                                                              segments: pattern.segments, source: pattern, templateID: template.id)
+                            } label: {
+                                Label("\(template.pattern.employer)・\(chipSummary(template.pattern.segments))", systemImage: "trash")
                             }
                         }
-                    } label: {
-                        Image(systemName: "ellipsis").frame(minWidth: 44, minHeight: 44)
                     }
-                    .accessibilityLabel("テンプレートを管理")
-                }
-                Spacer()
-                Button {
-                    newlySavedTemplateKey = nil
-                    showTemplateSheet = true
                 } label: {
-                    Label("テンプレートを作成", systemImage: "plus")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
+                    Image(systemName: "ellipsis")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-                .frame(minHeight: 44)
+                .accessibilityLabel("テンプレートを管理")
             }
-            .foregroundStyle(.secondary)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var formatQuickAddRow: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    Text("テンプレート").font(.subheadline.weight(.semibold))
+                        .fixedSize()
+                    Spacer(minLength: 0)
+                    templateControls
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("テンプレート").font(.subheadline.weight(.semibold))
+                    templateControls
+                }
+            }
+
             if recentFormats.isEmpty {
                 Text("いつもの勤務先・時間・時給を、日付なしで保存できます。")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(recentFormats) { format in
+                                formatChip(format)
+                                    .id(format.id)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 2)
+                    }
+                    .padding(.horizontal, -16)
+                    .onChange(of: newlySavedTemplateKey) { _, key in
+                        if let key {
+                            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                                proxy.scrollTo(key, anchor: .center)
+                            }
+                        }
+                    }
+                }
             }
-            HStack {
-                if !recentFormats.isEmpty { Text("タップでこの日に追加").font(.caption2) }
-                Spacer()
+
+            HStack(alignment: .firstTextBaseline) {
+                if !recentFormats.isEmpty {
+                    Text("タップでこの日に追加").font(.caption)
+                }
+                Spacer(minLength: 8)
                 if !dismissedFormatKeys.isEmpty {
-                    Button("非表示を戻す", action: restoreFormats).font(.caption2)
+                    Button("非表示を戻す", action: restoreFormats).font(.caption)
                 }
             }
             .foregroundStyle(.secondary)
-
-            ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(recentFormats) { format in
-                        formatChip(format)
-                            .id(format.id)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 2)
-            }
-            // Bleeds the scroller out to the card's edges so a row that runs off-screen looks
-            // deliberately scrollable, instead of being cut short inside the card's padding.
-            .padding(.horizontal, -16)
-            .onChange(of: newlySavedTemplateKey) { _, key in
-                if let key {
-                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
-                        proxy.scrollTo(key, anchor: .center)
-                    }
-                }
-            }
-            }
         }
         .sensoryFeedback(.success, trigger: quickAddCount)
     }
@@ -440,62 +459,84 @@ struct ShiftsTab: View {
     private func formatChip(_ format: ShiftFormat) -> some View {
         let added = isFormatAdded(format)
         let overlaps = !added && ShiftScenario.hasOverlap(format.source.repeated(on: selectedDate), with: store.shifts)
+        let accent: Color = overlaps ? .orange : .accentColor
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         return Button {
             quickAdd(format)
         } label: {
-            HStack(spacing: 9) {
-                Image(systemName: added ? "checkmark.circle.fill" : (overlaps ? "exclamationmark.circle" : "plus.circle.fill"))
-                    .font(.system(size: 21))
-                    .foregroundStyle(overlaps ? Color.orange : Color.accentColor)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Text(format.employer)
-                            .font(.subheadline).fontWeight(.semibold)
-                            .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(format.employer)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                if let first = format.segments.first, let last = format.segments.last {
+                    Text("\(ClockUtils.formatClock(first.startMinute))–\(ClockUtils.formatClock(last.endMinute))")
+                        .font(.title3.weight(.regular))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                }
+
+                HStack(spacing: 6) {
+                    VStack(alignment: .leading, spacing: 2) {
                         if added {
-                            Text("追加済み")
-                                .font(.system(size: 9, weight: .bold))
-                                .padding(.horizontal, 5).padding(.vertical, 1.5)
-                                .background(Color.green.opacity(0.16))
-                                .foregroundStyle(.green)
-                                .clipShape(Capsule())
+                            Text("追加済み").foregroundStyle(Color.accentColor)
                         } else if overlaps {
-                            Text("時間重複")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.orange)
+                            Text("時間重複").foregroundStyle(.orange)
+                        } else if format.segments.count > 1 {
+                            Text("\(format.segments.count)区分").foregroundStyle(.secondary)
+                        } else if let segment = format.segments.first {
+                            HStack(spacing: 3) {
+                                Text("時給")
+                                Text(yen(segment.hourlyWage))
+                            }
+                            .foregroundStyle(.secondary)
+                        }
+                        if format.source.breakMinutes > 0 {
+                            Text("休憩\(format.source.breakMinutes)分")
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    Text(chipSummary(format.segments))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    if format.source.breakMinutes > 0 {
-                        Text("休憩\(format.source.breakMinutes)分")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
+                    .font(.caption2)
+                    .lineLimit(1)
+                    Spacer(minLength: 0)
+                    Image(systemName: added ? "checkmark" : (overlaps ? "exclamationmark" : "plus"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(accent)
+                        .frame(width: 28, height: 28)
+                        .background(accent.opacity(0.1), in: Circle())
                 }
+                .frame(minHeight: 28)
             }
-            .padding(.horizontal, 12).padding(.vertical, 10)
-            .background(Color.accentColor.opacity(0.09))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.accentColor.opacity(0.22), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(14)
+            .frame(width: templateCardWidth, alignment: .leading)
+            .background(added ? Color.accentColor.opacity(0.06) : Color(.tertiarySystemGroupedBackground), in: shape)
+            .overlay {
+                shape.strokeBorder(added ? Color.accentColor.opacity(0.35) : Color.primary.opacity(0.07), lineWidth: 1)
+            }
+            .contentShape(shape)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TemplateCardButtonStyle())
         .disabled(added || overlaps)
-        .accessibilityHint(overlaps ? Text("登録済みのシフトと勤務時間が重複しています。既存のシフトを確認・編集してください。") : Text(""))
-        // Hiding lives in a long-press menu rather than an always-visible "×" — that × sat a few
-        // points from the add target, so a near-miss silently removed the template instead of
-        // recording a shift, and nothing on it said which of the two it would do.
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(added ? [.isSelected] : [])
+        .accessibilityLabel("\(format.employer)、\(chipSummary(format.segments))")
+        .accessibilityValue(added ? Text("追加済み") : (overlaps ? Text("時間重複") : Text("")))
+        .accessibilityHint(added ? Text("") : (overlaps ? Text("登録済みのシフトと勤務時間が重複しています。既存のシフトを確認・編集してください。") : Text("タップでこの日に追加")))
         .contextMenu {
             Button(role: .destructive) {
                 dismissFormat(format)
             } label: {
                 Label("このテンプレートを非表示", systemImage: "eye.slash")
             }
+        }
+    }
+
+    /// Keep status text readable when the card is disabled after adding or overlapping.
+    private struct TemplateCardButtonStyle: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label.opacity(configuration.isPressed ? 0.75 : 1)
         }
     }
 

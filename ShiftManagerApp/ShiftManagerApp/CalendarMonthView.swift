@@ -76,6 +76,7 @@ struct CalendarMonthView: View {
             VStack(spacing: 4) {
                 Text("\(day)")
                     .font(.subheadline)
+                    .lineLimit(1).minimumScaleFactor(0.5)
                     .foregroundStyle(dayColor)
                     .frame(width: 28, height: 28)
                     .background(isSelected ? Color.accentColor : Color.clear)
