@@ -141,7 +141,7 @@ struct ShiftsTab: View {
                 .padding(16)
                 // Leave room just above the month label without moving the calendar
                 // when the temporary undo card appears or expires.
-                .padding(.top, 24)
+                .padding(.top, 32)
                 .readableColumn()
             }
             .background(Color(.systemGroupedBackground))
@@ -207,51 +207,59 @@ struct ShiftsTab: View {
             let seconds = Int(ceil(remaining))
             let progress = min(1, remaining / ShiftStore.shiftDeletionUndoDuration)
             HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Group {
-                        if store.pendingShiftDeletionCount == 1 {
-                            Text("削除しました")
-                        } else {
-                            Text("\(store.pendingShiftDeletionCount)件削除しました")
-                        }
-                    }
-                    .font(.subheadline.weight(.medium)).foregroundStyle(.primary)
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                    HStack(spacing: 6) {
-                        Capsule()
-                            .fill(Color.accentColor.opacity(0.16))
-                            .overlay(alignment: .leading) {
-                                Capsule().fill(Color.accentColor)
-                                    .scaleEffect(x: progress, y: 1, anchor: .leading)
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Group {
+                            if store.pendingShiftDeletionCount == 1 {
+                                Text("削除しました")
+                            } else {
+                                Text("\(store.pendingShiftDeletionCount)件削除しました")
                             }
-                            .frame(width: 64, height: 3)
-                            .accessibilityHidden(true)
+                        }
+                        .font(.footnote.weight(.medium)).foregroundStyle(.primary)
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                        Spacer(minLength: 0)
                         Text("あと\(seconds)秒")
                             .font(.caption).foregroundStyle(.secondary)
                             .lineLimit(1).minimumScaleFactor(0.8)
                             .accessibilityLabel("元に戻せる残り時間、\(seconds)秒")
                     }
+                    Capsule()
+                        .fill(Color.accentColor.opacity(0.1))
+                        .overlay(alignment: .leading) {
+                            Capsule().fill(Color.accentColor)
+                                .scaleEffect(x: progress, y: 1, anchor: .leading)
+                        }
+                        .frame(height: 3)
+                        .accessibilityHidden(true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                Rectangle()
+                    .fill(Color.primary.opacity(0.09))
+                    .frame(width: 1, height: 22)
+                    .accessibilityHidden(true)
                 Button(action: undoDeletion) {
-                    Text("元に戻す")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(Color.accentColor)
-                        .padding(.horizontal, 10).padding(.vertical, 8)
-                        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-                        .frame(minHeight: 44).contentShape(Rectangle())
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 12, weight: .medium))
+                            .accessibilityHidden(true)
+                        Text("元に戻す").font(.footnote.weight(.semibold))
+                    }
+                    .foregroundStyle(Color.accentColor)
+                    .frame(minHeight: 44).contentShape(Rectangle())
                 }
                     .buttonStyle(.plain)
                     .accessibilityHint("直前に削除したシフトをまとめて戻します")
             }
             .frame(height: 44)
-            .padding(.horizontal, 12).padding(.vertical, 2)
-            .frame(maxWidth: 280)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, 16).padding(.vertical, 4)
+            .frame(maxWidth: 300)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(Color.accentColor.opacity(0.4), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.75)
             }
-            .shadow(color: .black.opacity(0.07), radius: 5, y: 2)
+            .shadow(color: .black.opacity(0.08), radius: 10, y: 4)
         }
     }
 
