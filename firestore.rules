@@ -8,11 +8,13 @@ service cloud.firestore {
         return d._syncSchema == 1 && d._syncRevision is int && d._syncRevision >= 1
           && d._accountDeleted is bool && d._recentMutations is list && d._recentMutations.size() <= 200
           && d.shifts is list && d.expenses is list && d.employerProfiles is list
+          && d.get('shiftTemplates', []) is list
           && d.deductions is list && d.actualPayments is list && d.recurringExpenses is list;
       }
       function emptyRecords() {
         let d = request.resource.data;
         return d.shifts.size() == 0 && d.expenses.size() == 0 && d.employerProfiles.size() == 0
+          && d.get('shiftTemplates', []).size() == 0
           && d.deductions.size() == 0 && d.actualPayments.size() == 0 && d.recurringExpenses.size() == 0;
       }
       function deletionMarker() {
@@ -35,7 +37,7 @@ service cloud.firestore {
         && ((!resource.data.get('_accountDeleted', false) && deletionMarker())
           || (resource.data.get('_accountDeleted', false) && rollbackOwnDeletion()));
       // Retain the empty marker under the old UID to reject writes from stale sessions.
-      // Auth deletion removes the login; the six personal-data arrays are already empty.
+      // Auth deletion removes the login; all personal-data arrays are already empty.
       allow delete: if false;
     }
     match /{document=**} { allow read, write: if false; }

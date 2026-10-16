@@ -11,6 +11,9 @@ struct ShiftsTab: View {
 
     @State private var selectedDate: String
     @State private var showAddSheet = false
+    @State private var showTemplateSheet = false
+    @State private var newlySavedTemplateKey: String?
+    @State private var templateToDelete: ShiftFormat?
     @State private var editingShift: Shift?
     @State private var dismissedFormatKeys: Set<String> = Set(
         UserDefaults.standard.stringArray(forKey: "shiftmgr.dismissedShiftFormats") ?? []
@@ -64,24 +67,29 @@ struct ShiftsTab: View {
         monthShifts.filter { $0.date == selectedDate }
     }
 
-    /// One previously-used employer + time-block combination, offered as a one-tap way to add
-    /// a shift without opening the full form — built from shift history, not a separately
-    /// managed template list, so it stays current with no extra upkeep from the user.
+    /// Saved templates and older history patterns share the same one-tap entry.
     private struct ShiftFormat: Identifiable {
         let id: String
         let employer: String
         let segments: [WorkSegment]
         let source: Shift
+        let templateID: String?
     }
 
     /// Reuse recorded patterns without a second setup flow. Stable ordering keeps a template
     /// under the user's finger while adding the same pattern across several calendar dates.
     private var recentFormats: [ShiftFormat] {
         var seen: [String: ShiftFormat] = [:]
+        for template in store.shiftTemplates {
+            let shift = template.pattern
+            let key = Self.formatKey(shift)
+            seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments,
+                                    source: shift, templateID: template.id)
+        }
         for shift in (store.shifts + store.undoableDeletedShifts).sorted(by: { $0.date > $1.date }) {
             let key = Self.formatKey(shift)
             if seen[key] == nil {
-                seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments, source: shift)
+                seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments, source: shift, templateID: nil)
             }
         }
         return seen.values
@@ -95,13 +103,7 @@ struct ShiftsTab: View {
     }
 
     private static func formatKey(_ shift: Shift) -> String {
-        var normalized = shift
-        normalized.id = ""
-        normalized.date = ""
-        normalized.isStatutoryHoliday = false
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .sortedKeys
-        return (try? encoder.encode(normalized).base64EncodedString()) ?? shift.id
+        ShiftTemplate.fingerprint(shift)
     }
 
     /// Adds a shift for `selectedDate` straight from a format — no form, matching how a manual
@@ -182,6 +184,15 @@ struct ShiftsTab: View {
                     .environmentObject(store)
                     .environmentObject(notifications)
             }
+            .sheet(isPresented: $showTemplateSheet) {
+                ShiftFormView(date: selectedDate, existing: nil, isTemplate: true) { template in
+                    dismissedFormatKeys.remove(template.fingerprint)
+                    UserDefaults.standard.set(Array(dismissedFormatKeys), forKey: "shiftmgr.dismissedShiftFormats")
+                    newlySavedTemplateKey = template.fingerprint
+                }
+                    .environmentObject(store)
+                    .environmentObject(notifications)
+            }
             .sheet(item: $editingShift) { shift in
                 ShiftFormView(date: shift.date, existing: shift)
                     .environmentObject(store)
@@ -194,6 +205,19 @@ struct ShiftsTab: View {
                 Button("閉じる", role: .cancel) { actionError = nil }
             } message: { error in
                 Text(LocalizedStringKey(error.message))
+            }
+            .alert("テンプレートを削除しますか？", isPresented: Binding(
+                get: { templateToDelete != nil },
+                set: { if !$0 { templateToDelete = nil } }
+            ), presenting: templateToDelete) { format in
+                Button("削除する", role: .destructive) {
+                    if let id = format.templateID { store.deleteShiftTemplate(id: id) }
+                    dismissFormat(format)
+                    templateToDelete = nil
+                }
+                Button("キャンセル", role: .cancel) { templateToDelete = nil }
+            } message: { _ in
+                Text("登録済みのシフトは削除されません。")
             }
         }
     }
@@ -302,15 +326,7 @@ struct ShiftsTab: View {
                 }
                 .font(.subheadline)
             }
-            if !recentFormats.isEmpty {
-                formatQuickAddRow
-            } else {
-                Text("最初のシフトを追加すると、次から日付を選んでテンプレートをタップするだけで登録できます。")
-                    .font(.subheadline).foregroundStyle(.secondary)
-                if !dismissedFormatKeys.isEmpty {
-                    Button("非表示のテンプレートを戻す", action: restoreFormats).font(.subheadline)
-                }
-            }
+            formatQuickAddRow
             if dayShifts.isEmpty {
                 Text("この日のシフトはありません。").font(.caption).foregroundStyle(.secondary)
             } else {
@@ -352,18 +368,55 @@ struct ShiftsTab: View {
             HStack(spacing: 5) {
                 Image(systemName: "bolt.fill").font(.system(size: 10))
                 Text("テンプレート").font(.caption).fontWeight(.semibold)
+                if !store.shiftTemplates.isEmpty {
+                    Menu {
+                        Section("削除するテンプレート") {
+                            ForEach(store.shiftTemplates) { template in
+                                Button(role: .destructive) {
+                                    let pattern = template.pattern
+                                    templateToDelete = ShiftFormat(id: template.fingerprint, employer: pattern.employer,
+                                                                  segments: pattern.segments, source: pattern, templateID: template.id)
+                                } label: {
+                                    Label("\(template.pattern.employer)・\(chipSummary(template.pattern.segments))", systemImage: "trash")
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis").frame(minWidth: 44, minHeight: 44)
+                    }
+                    .accessibilityLabel("テンプレートを管理")
+                }
+                Spacer()
+                Button {
+                    newlySavedTemplateKey = nil
+                    showTemplateSheet = true
+                } label: {
+                    Label("テンプレートを作成", systemImage: "plus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+                .frame(minHeight: 44)
+            }
+            .foregroundStyle(.secondary)
+            if recentFormats.isEmpty {
+                Text("いつもの勤務先・時間・時給を、日付なしで保存できます。")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            HStack {
+                if !recentFormats.isEmpty { Text("タップでこの日に追加").font(.caption2) }
                 Spacer()
                 if !dismissedFormatKeys.isEmpty {
                     Button("非表示を戻す", action: restoreFormats).font(.caption2)
                 }
-                Text("タップでこの日に追加").font(.caption2)
             }
             .foregroundStyle(.secondary)
 
+            ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(recentFormats) { format in
                         formatChip(format)
+                            .id(format.id)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -372,6 +425,14 @@ struct ShiftsTab: View {
             // Bleeds the scroller out to the card's edges so a row that runs off-screen looks
             // deliberately scrollable, instead of being cut short inside the card's padding.
             .padding(.horizontal, -16)
+            .onChange(of: newlySavedTemplateKey) { _, key in
+                if let key {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) {
+                        proxy.scrollTo(key, anchor: .center)
+                    }
+                }
+            }
+            }
         }
         .sensoryFeedback(.success, trigger: quickAddCount)
     }

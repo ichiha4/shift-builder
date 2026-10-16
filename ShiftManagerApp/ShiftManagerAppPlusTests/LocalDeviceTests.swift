@@ -272,4 +272,97 @@ final class ShiftDeletionUndoTests: XCTestCase {
         XCTAssertEqual(store.shifts, [second])
     }
 }
+@MainActor
+final class ShiftTemplateStoreTests: XCTestCase {
+    private var suiteName = ""
+    private var defaults: UserDefaults!
+    private var stores: [ShiftStore] = []
+
+    override func setUp() {
+        super.setUp()
+        suiteName = "ShiftBuilder.TemplateStoreTests." + UUID().uuidString
+        defaults = UserDefaults(suiteName: suiteName)!
+    }
+
+    override func tearDown() {
+        for store in stores { store.detachUser() }
+        defaults.removePersistentDomain(forName: suiteName)
+        stores.removeAll(); defaults = nil
+        super.tearDown()
+    }
+
+    private func openStore() -> ShiftStore {
+        let store = ShiftStore(defaults: defaults, remindersEnabled: false)
+        store.attachUser(uid: LocalDeviceTestTransport.accountID)
+        stores.append(store)
+        return store
+    }
+
+    private func template(start: Int = 540, end: Int = 1020) -> ShiftTemplate {
+        ShiftTemplate(pattern: Shift(date: "2026-10-17", employer: "Template Cafe",
+                                      segments: [WorkSegment(startMinute: start, endMinute: end, hourlyWage: 1350.5)],
+                                      transport: 250.25))
+    }
+
+    private func waitForSaved(_ store: ShiftStore) async throws {
+        for _ in 0..<200 {
+            if store.pendingSyncCount == 0 && !store.syncWriteFailed { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTFail("Templates were not committed")
+    }
+
+    func testSameEmployerTemplatesSurviveReopeningWithoutSchedulingWork() async throws {
+        let store = openStore()
+        XCTAssertTrue(store.saveShiftTemplate(template()))
+        XCTAssertTrue(store.saveShiftTemplate(template(start: 1020, end: 1320)))
+        try await waitForSaved(store)
+        let expected = store.shiftTemplates
+        XCTAssertEqual(expected.count, 2)
+        XCTAssertTrue(store.shifts.isEmpty)
+        XCTAssertTrue(store.actualPayments.isEmpty)
+        store.detachUser()
+        let reopened = openStore()
+        XCTAssertEqual(Set(reopened.shiftTemplates.map(\.id)), Set(expected.map(\.id)))
+        XCTAssertTrue(reopened.shifts.isEmpty)
+    }
+
+    func testDuplicatePatternDoesNotAddAnotherTemplate() async throws {
+        let store = openStore()
+        let first = template()
+        XCTAssertTrue(store.saveShiftTemplate(first))
+        XCTAssertTrue(store.saveShiftTemplate(template()))
+        try await waitForSaved(store)
+        XCTAssertEqual(store.shiftTemplates.map(\.id), [first.id])
+        XCTAssertTrue(store.shifts.isEmpty)
+    }
+
+    func testRemovingActualShiftKeepsTemplateAndRemovingTemplateKeepsOtherShift() async throws {
+        let store = openStore(), saved = template()
+        XCTAssertTrue(store.saveShiftTemplate(saved))
+        let first = saved.shift(on: "2026-10-20"), second = saved.shift(on: "2026-10-21")
+        store.addShift(first); store.addShift(second)
+        store.deleteShift(id: first.id)
+        XCTAssertEqual(store.shiftTemplates, [saved])
+        store.deleteShiftTemplate(id: saved.id)
+        try await waitForSaved(store)
+        XCTAssertTrue(store.shiftTemplates.isEmpty)
+        XCTAssertEqual(store.shifts, [second])
+    }
+
+    func testEmployerRenameUpdatesTemplateAndAccountWipeClearsItsLocalCopy() async throws {
+        let store = openStore()
+        var profile = EmployerProfile(name: "Template Cafe", defaultWage: 1350.5)
+        store.saveEmployerProfile(profile)
+        XCTAssertTrue(store.saveShiftTemplate(template()))
+        profile.name = "Renamed Cafe"
+        store.saveEmployerProfile(profile)
+        try await waitForSaved(store)
+        XCTAssertEqual(store.shiftTemplates.first?.pattern.employer, "Renamed Cafe")
+        XCTAssertNotNil(defaults.data(forKey: "shiftmgr.shiftTemplates"))
+        store.wipeLocalData()
+        XCTAssertTrue(store.shiftTemplates.isEmpty)
+        XCTAssertNil(defaults.data(forKey: "shiftmgr.shiftTemplates"))
+    }
+}
 #endif

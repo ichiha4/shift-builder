@@ -72,6 +72,17 @@ struct SyncConflictView: View {
         if let record {
             let decoder = JSONDecoder()
             switch collection {
+            case .shiftTemplates:
+                if let template = try? decoder.decode(ShiftTemplate.self, from: record.data) {
+                    Text("テンプレート")
+                    Text(verbatim: template.pattern.employer)
+                    ForEach(Array(template.pattern.segments.enumerated()), id: \.offset) { _, segment in
+                        Text(verbatim: "\(ClockUtils.formatClock(segment.startMinute))–\(ClockUtils.formatClock(segment.endMinute)) · ¥\(segment.hourlyWage.formatted())")
+                    }
+                    LabeledContent("休憩(分)", value: template.pattern.breakMinutes.formatted())
+                    LabeledContent("交通費", value: template.pattern.transport.formatted())
+                    LabeledContent("その他手当", value: template.pattern.otherAllowance.formatted())
+                }
             case .shifts:
                 if let s = try? decoder.decode(Shift.self, from: record.data) {
                     Text(verbatim: "\(s.date) · \(s.employer)")

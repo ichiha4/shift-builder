@@ -22,6 +22,7 @@ final class ShiftStore: ObservableObject {
         didSet { classificationsCache = nil }
     }
     @Published private(set) var expenses: [Expense] = []
+    @Published private(set) var shiftTemplates: [ShiftTemplate] = []
     @Published private(set) var employerProfiles: [EmployerProfile] = []
     @Published private(set) var deductions: [Deduction] = []
     @Published private(set) var actualPayments: [ActualPayment] = []
@@ -42,6 +43,7 @@ final class ShiftStore: ObservableObject {
 
     private enum Key {
         static let shifts = "shiftmgr.shifts"
+        static let shiftTemplates = "shiftmgr.shiftTemplates"
         static let expenses = "shiftmgr.expenses"
         static let employerProfiles = "shiftmgr.employerProfiles"
         static let deductions = "shiftmgr.deductions"
@@ -52,7 +54,7 @@ final class ShiftStore: ObservableObject {
         static let journal = "shiftmgr.syncJournal.v1"
         static let deletionBackup = "shiftmgr.deletionBackup.v1"
         static let legacyRecovery = "shiftmgr.legacyRecovery.v1"
-        static let allData = [shifts, expenses, employerProfiles, deductions, actualPayments, recurringExpenses, journal, deletionBackup, legacyRecovery]
+        static let allData = [shifts, shiftTemplates, expenses, employerProfiles, deductions, actualPayments, recurringExpenses, journal, deletionBackup, legacyRecovery]
     }
 
     private let defaults: UserDefaults
@@ -85,6 +87,7 @@ final class ShiftStore: ObservableObject {
         #endif
         self.remindersEnabled = remindersEnabled
         shifts = Self.decode([Shift].self, key: Key.shifts, defaults: defaults) ?? []
+        shiftTemplates = Self.decode([ShiftTemplate].self, key: Key.shiftTemplates, defaults: defaults) ?? []
         expenses = Self.decode([Expense].self, key: Key.expenses, defaults: defaults) ?? []
         employerProfiles = Self.decode([EmployerProfile].self, key: Key.employerProfiles, defaults: defaults) ?? []
         deductions = Self.decode([Deduction].self, key: Key.deductions, defaults: defaults) ?? []
@@ -105,12 +108,14 @@ final class ShiftStore: ObservableObject {
     private var currentSnapshot: AccountSnapshot {
         var result = AccountSnapshot()
         result.shifts = shifts; result.expenses = expenses; result.employerProfiles = employerProfiles
+        result.shiftTemplates = shiftTemplates
         result.deductions = deductions; result.actualPayments = actualPayments; result.recurringExpenses = recurringExpenses
         return result
     }
 
     private func apply(_ snapshot: AccountSnapshot) {
         shifts = snapshot.shifts; expenses = snapshot.expenses; employerProfiles = snapshot.employerProfiles
+        shiftTemplates = snapshot.shiftTemplates
         deductions = snapshot.deductions; actualPayments = snapshot.actualPayments; recurringExpenses = snapshot.recurringExpenses
     }
 
@@ -357,6 +362,26 @@ final class ShiftStore: ObservableObject {
 
     // MARK: - Shifts
 
+    @discardableResult
+    func saveShiftTemplate(_ template: ShiftTemplate) -> Bool {
+        guard cloudDataReady, !cloudSyncSuspended else { return false }
+        if let index = shiftTemplates.firstIndex(where: { $0.id == template.id || $0.fingerprint == template.fingerprint }) {
+            var updated = template
+            updated.id = shiftTemplates[index].id
+            shiftTemplates[index] = updated
+        } else {
+            shiftTemplates.append(template)
+        }
+        persist(shiftTemplates, key: Key.shiftTemplates)
+        return shiftTemplates.contains { $0.fingerprint == template.fingerprint }
+    }
+
+    func deleteShiftTemplate(id: String) {
+        guard cloudDataReady, !cloudSyncSuspended else { return }
+        shiftTemplates.removeAll { $0.id == id }
+        persist(shiftTemplates, key: Key.shiftTemplates)
+    }
+
     func addShift(_ shift: Shift) {
         guard cloudDataReady, !cloudSyncSuspended else { return }
         shifts.append(shift)
@@ -479,6 +504,7 @@ final class ShiftStore: ObservableObject {
             if oldName != profile.name {
                 // Names are the current relationship key: keep all linked history together.
                 for i in shifts.indices where shifts[i].employer == oldName { shifts[i].employer = profile.name }
+                for i in shiftTemplates.indices where shiftTemplates[i].pattern.employer == oldName { shiftTemplates[i].pattern.employer = profile.name }
                 for i in actualPayments.indices where actualPayments[i].employer == oldName { actualPayments[i].employer = profile.name }
                 persistLocalOnly()
             }
@@ -617,6 +643,7 @@ final class ShiftStore: ObservableObject {
     /// re-triggering a push back to the cloud.
     private func persistLocalOnly() {
         for (value, key) in [(try? JSONEncoder().encode(shifts), Key.shifts),
+                              (try? JSONEncoder().encode(shiftTemplates), Key.shiftTemplates),
                               (try? JSONEncoder().encode(expenses), Key.expenses),
                               (try? JSONEncoder().encode(employerProfiles), Key.employerProfiles),
                               (try? JSONEncoder().encode(deductions), Key.deductions),

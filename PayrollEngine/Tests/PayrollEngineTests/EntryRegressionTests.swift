@@ -1,6 +1,82 @@
 import XCTest
 @testable import PayrollEngine
 
+final class ShiftTemplateTests: XCTestCase {
+    private func pattern(start: Int = 540, end: Int = 1020) -> Shift {
+        Shift(id: "source", date: "2026-10-17", employer: "Cafe",
+              segments: [WorkSegment(startMinute: start, endMinute: end, hourlyWage: 1250.5)],
+              breakMinutes: 30, breakStartMinute: 720, transport: 250.5, otherAllowance: 100.25,
+              isStatutoryHoliday: true)
+    }
+
+    func testSameEmployerCanHaveDifferentHoursWithoutCreatingShifts() {
+        var snapshot = AccountSnapshot()
+        snapshot.shiftTemplates = [ShiftTemplate(pattern: pattern()), ShiftTemplate(pattern: pattern(start: 1020, end: 1320))]
+        XCTAssertEqual(snapshot.shiftTemplates.count, 2)
+        XCTAssertNotEqual(snapshot.shiftTemplates[0].fingerprint, snapshot.shiftTemplates[1].fingerprint)
+        XCTAssertTrue(snapshot.shifts.isEmpty)
+        XCTAssertEqual(Aggregation.calculateMonthlyPay(snapshot.shifts, classifications: [:]).grossTotal, 0)
+    }
+
+    func testFingerprintIgnoresSourceDayIDAndHolidayButKeepsConditions() {
+        let original = pattern()
+        var anotherDay = original; anotherDay.id = "different"; anotherDay.date = "2026-11-03"; anotherDay.isStatutoryHoliday = false
+        XCTAssertEqual(ShiftTemplate.fingerprint(original), ShiftTemplate.fingerprint(anotherDay))
+        anotherDay.transport += 0.5
+        XCTAssertNotEqual(ShiftTemplate.fingerprint(original), ShiftTemplate.fingerprint(anotherDay))
+    }
+
+    func testAddingTemplateToDatesCreatesIndependentShiftsAndPreservesPrecision() {
+        let template = ShiftTemplate(pattern: pattern())
+        let first = template.shift(on: "2026-10-20"), second = template.shift(on: "2026-10-21")
+        XCTAssertNotEqual(first.id, second.id)
+        XCTAssertEqual(first.date, "2026-10-20")
+        XCTAssertEqual(second.date, "2026-10-21")
+        XCTAssertFalse(first.isStatutoryHoliday)
+        XCTAssertEqual(first.segments, pattern().segments)
+        XCTAssertEqual(first.breakStartMinute, 720)
+        XCTAssertEqual(first.breakMinutes, 30)
+        XCTAssertEqual(first.transport, 250.5)
+        XCTAssertEqual(first.otherAllowance, 100.25)
+        XCTAssertTrue(template.pattern.date.isEmpty)
+    }
+
+    func testOldAccountsWithoutTemplatesDecodeButMalformedTemplatesDoNot() throws {
+        let legacy = Data(#"{"shifts":[],"expenses":[],"employerProfiles":[],"deductions":[]}"#.utf8)
+        XCTAssertTrue(try JSONDecoder().decode(AccountSnapshot.self, from: legacy).shiftTemplates.isEmpty)
+        let malformed = Data(#"{"shifts":[],"expenses":[],"employerProfiles":[],"deductions":[],"shiftTemplates":"broken"}"#.utf8)
+        XCTAssertThrowsError(try JSONDecoder().decode(AccountSnapshot.self, from: malformed))
+    }
+
+    func testTemplateSyncRetainsUnrelatedRemoteShiftAndPay() throws {
+        let before = AccountSnapshot()
+        var local = before; local.shiftTemplates = [ShiftTemplate(pattern: pattern())]
+        var remote = before; remote.shifts = [pattern()]
+        let batch = try SyncBatch(from: before, to: local)
+        XCTAssertEqual(Set(batch.changes.map(\.collection)), [.shiftTemplates])
+        XCTAssertTrue(try batch.conflicts(with: remote).isEmpty)
+        let merged = try batch.applying(to: remote)
+        XCTAssertEqual(merged.shifts, remote.shifts)
+        XCTAssertEqual(merged.shiftTemplates, local.shiftTemplates)
+        XCTAssertEqual(Aggregation.calculateMonthlyPay(merged.shifts, classifications: PayCalculation.buildEmployerClassifications(merged.shifts)).grossTotal,
+                       Aggregation.calculateMonthlyPay(remote.shifts, classifications: PayCalculation.buildEmployerClassifications(remote.shifts)).grossTotal)
+    }
+
+    func testTemplateQueueSurvivesRestartAndDeletionNeverDeletesActualShift() throws {
+        var journal = SyncJournal()
+        var snapshot = AccountSnapshot(); snapshot.shifts = [pattern()]
+        snapshot.shiftTemplates = [ShiftTemplate(pattern: pattern())]
+        try journal.recordEdit(to: snapshot)
+        let reopened = try JSONDecoder().decode(SyncJournal.self, from: JSONEncoder().encode(journal))
+        XCTAssertEqual(try reopened.workingSnapshot(), snapshot)
+        var removed = snapshot; removed.shiftTemplates = []
+        let deletion = try SyncBatch(from: snapshot, to: removed)
+        XCTAssertEqual(try deletion.applying(to: snapshot).shifts, snapshot.shifts)
+        XCTAssertTrue(try deletion.applying(to: snapshot).shiftTemplates.isEmpty)
+        XCTAssertTrue(try deletion.conflicts(with: removed).isEmpty)
+    }
+}
+
 final class EmployerChoiceTests: XCTestCase {
     private func shift(_ id: String, employer: String, date: String = "2026-10-20", wage: Double = 1200) -> Shift {
         Shift(id: id, date: date, employer: employer,

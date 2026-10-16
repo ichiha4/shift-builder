@@ -5,7 +5,7 @@
 1. `python3 scripts/setup_local_demo.py` を実行します。
 2. `ShiftManagerApp/ShiftManagerApp.xcodeproj` をXcodeで開きます。
 3. `ShiftManagerApp-LocalDevice` SchemeとiPhoneシミュレータを選び、Runします。
-4. 勤務先と最初のシフトを登録します。別の日付を選んでテンプレートをタップすると保存できます。
+4. シフト画面の「テンプレートを作成」で勤務先・時間・時給を保存します。カレンダーで勤務する日を選び、テンプレートをタップして追加します。
 5. 給与画面で給与明細の課税支給額を入力し、ホームの年収カードから自分の年間上限を設定します。
 
 現在の通常画面はサブスク登録を使いません。既存のStoreKit設定・購入テストは、以前の試作を検証するための履歴として残しています。
@@ -26,12 +26,15 @@
 
 ## Firestoreルールのローカルテスト
 
-Node.jsとFirebase Emulatorに必要なJavaを用意します。
+Node.jsとJava 21を用意し、リポジトリのルートで実行します。
 
 ```sh
-cd release-tests
-npm ci
-npx firebase emulators:exec --project demo-shiftbuilder-sync --only firestore "npm test"
+npm --prefix release-tests ci
+./release-tests/node_modules/.bin/firebase emulators:exec \
+  --project demo-shiftbuilder-sync --config firebase.emulators.json \
+  --only firestore "npm --prefix release-tests test"
 ```
 
 このコマンドは `demo-` 接頭辞のテスト用プロジェクトとローカルエミュレータを使用します。iOSのFirestoreテストは認証エミュレータも必要です。通常のPlusTests Schemeで `SHIFTBUILDER_EMULATOR_TESTS=1` を指定して実行します。
+
+本番配布前に、接続する端末を現在の同期方式へ更新してから `firestore.rules` を反映します。新ルールは旧方式の全体上書きを拒否し、テンプレートを残したアカウント削除も拒否します。エミュレータでの成功は本番反映を意味しません。

@@ -303,6 +303,14 @@
 
 /* Shift templates (quick add) */
 "テンプレート" = "Templates";
+"テンプレートを作成" = "Create template";
+"テンプレートを削除" = "Delete template";
+"テンプレートを管理" = "Manage templates";
+"削除するテンプレート" = "Choose a template to delete";
+"テンプレートを削除しますか？" = "Delete this template?";
+"登録済みのシフトは削除されません。" = "Your saved shifts will stay.";
+"いつもの勤務先・時間・時給を、日付なしで保存できます。" = "Save your usual employer, hours and rate without scheduling a day.";
+"テンプレートの給与目安（控除前）" = "Template pay estimate (before deductions)";
 "タップでこの日に追加" = "Tap to add to this day";
 "追加済み" = "Added";
 

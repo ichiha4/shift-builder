@@ -8,6 +8,8 @@ struct ShiftFormView: View {
 
     @State private var date: String
     let existing: Shift?
+    let isTemplate: Bool
+    let onTemplateSaved: ((ShiftTemplate) -> Void)?
 
     @State private var employer: String
     @State private var segments: [SegmentDraft]
@@ -34,9 +36,11 @@ struct ShiftFormView: View {
         var wageText: String
     }
 
-    init(date: String, existing: Shift?) {
+    init(date: String, existing: Shift?, isTemplate: Bool = false, onTemplateSaved: ((ShiftTemplate) -> Void)? = nil) {
         _date = State(initialValue: date)
         self.existing = existing
+        self.isTemplate = isTemplate
+        self.onTemplateSaved = onTemplateSaved
         if let s = existing {
             _employer = State(initialValue: s.employer)
             _segments = State(initialValue: s.segments.map {
@@ -89,7 +93,7 @@ struct ShiftFormView: View {
             holidayRate: (FormNumber.nonnegative(holidayPercentText) ?? 35) / 100
         )
     }
-    private var preview: ShiftPayEstimate { PayCalculation.estimateShiftPay(draftShift, allShifts: store.shifts) }
+    private var preview: ShiftPayEstimate { PayCalculation.estimateShiftPay(draftShift, allShifts: isTemplate ? [] : store.shifts) }
 
     private var matchingProfile: EmployerProfile? {
         let trimmed = employer.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -99,13 +103,14 @@ struct ShiftFormView: View {
 
     private var employerChoices: [ShiftEmployerChoice] {
         ShiftEmployerChoice.available(profiles: store.employerProfiles,
-                                      shifts: store.shifts + store.undoableDeletedShifts)
+                                      shifts: store.shifts + store.undoableDeletedShifts + store.shiftTemplates.map(\.pattern))
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
+                    if !isTemplate {
                     DatePicker("日付", selection: Binding(
                         get: {
                             guard let parts = DateUtils.parseYMD(date) else { return Date() }
@@ -114,6 +119,7 @@ struct ShiftFormView: View {
                         set: { date = DateUtils.ymd($0) }
                     ), displayedComponents: .date)
                     .environment(\.calendar, DateUtils.calendar)
+                    }
                     employerField
                     if !employer.trimmingCharacters(in: .whitespaces).isEmpty {
                         Button {
@@ -165,7 +171,9 @@ struct ShiftFormView: View {
                     DisclosureGroup("詳細設定(今回だけ変更)", isExpanded: $showAdvanced) {
                         LabeledContent("交通費(円)") { TextField("0", text: $transportText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                         LabeledContent("その他手当(円)") { TextField("0", text: $otherAllowanceText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
-                        Toggle("この日は法定休日として計算する", isOn: $isStatutoryHoliday)
+                        if !isTemplate {
+                            Toggle("この日は法定休日として計算する", isOn: $isStatutoryHoliday)
+                        }
                         LabeledContent("所定労働時間(h)") { TextField("8", text: $scheduledHoursText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                         LabeledContent("深夜割増率(%)") { TextField("25", text: $lateNightPercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
                         LabeledContent("残業割増率(%)") { TextField("25", text: $overtimePercentText).keyboardType(.decimalPad).multilineTextAlignment(.trailing) }
@@ -173,7 +181,7 @@ struct ShiftFormView: View {
                     }
                 }
 
-                Section("このシフトの給与見込み（控除前）") {
+                Section(isTemplate ? "テンプレートの給与目安（控除前）" : "このシフトの給与見込み（控除前）") {
                     LabeledContent("合計(\(String(format: "%.1f", Double(preview.netMinutes) / 60))時間)") {
                         Text(yen(preview.netPay)).font(.headline).foregroundStyle(.green)
                     }
@@ -193,14 +201,14 @@ struct ShiftFormView: View {
                     }
                 }
             }
-            .navigationTitle(existing == nil ? "シフトを追加" : "シフトを編集")
+            .navigationTitle(isTemplate ? "テンプレートを作成" : (existing == nil ? "シフトを追加" : "シフトを編集"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("キャンセル") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(existing == nil ? "追加" : "更新") { save() }
+                    Button(isTemplate ? "保存" : (existing == nil ? "追加" : "更新")) { save() }
                 }
             }
             .onChange(of: employer) { _, newValue in applyProfileDefaultsIfNeeded(for: newValue) }
@@ -303,12 +311,21 @@ struct ShiftFormView: View {
             return
         }
         let candidate = draftShift
-        let validationErrors = Validation.validateShift(candidate, existing: store.shifts)
+        let validationErrors = Validation.validateShift(candidate, existing: isTemplate ? [] : store.shifts)
         guard validationErrors.isEmpty else {
             errors = validationErrors
             return
         }
-        if existing != nil {
+        if isTemplate {
+            let template = ShiftTemplate(pattern: candidate)
+            guard store.saveShiftTemplate(template) else {
+                errors = ["同期の状態を確認して、もう一度お試しください。"]
+                return
+            }
+            onTemplateSaved?(template)
+            dismiss()
+            return
+        } else if existing != nil {
             store.updateShift(candidate)
             notifications.log(kind: .updated, title: "シフトを更新しました", message: "\(candidate.employer)・\(DateUtils.formatFullDate(candidate.date))")
         } else {

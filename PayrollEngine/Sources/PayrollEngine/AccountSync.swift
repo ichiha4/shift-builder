@@ -1,8 +1,9 @@
 import Foundation
 
-/// The legacy cloud document's six record arrays. Sync metadata lives beside these fields.
+/// Account records, including reusable templates that are independent of actual shifts.
 public struct AccountSnapshot: Codable, Equatable, Sendable {
     public var shifts: [Shift] = []
+    public var shiftTemplates: [ShiftTemplate] = []
     public var expenses: [Expense] = []
     public var employerProfiles: [EmployerProfile] = []
     public var deductions: [Deduction] = []
@@ -12,14 +13,15 @@ public struct AccountSnapshot: Codable, Equatable, Sendable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case shifts, expenses, employerProfiles, deductions, actualPayments, recurringExpenses
+        case shifts, shiftTemplates, expenses, employerProfiles, deductions, actualPayments, recurringExpenses
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         // The original four fields are required: malformed/future documents must never
-        // be interpreted as an empty account. The last two were added to older documents.
+        // be interpreted as an empty account. Later record arrays are optional in older documents.
         shifts = try c.decode([Shift].self, forKey: .shifts)
+        shiftTemplates = try c.decodeIfPresent([ShiftTemplate].self, forKey: .shiftTemplates) ?? []
         expenses = try c.decode([Expense].self, forKey: .expenses)
         employerProfiles = try c.decode([EmployerProfile].self, forKey: .employerProfiles)
         deductions = try c.decode([Deduction].self, forKey: .deductions)
@@ -30,6 +32,7 @@ public struct AccountSnapshot: Codable, Equatable, Sendable {
     public func records(in collection: SyncCollection) throws -> [SyncRecord] {
         switch collection {
         case .shifts: return try Self.encode(shifts)
+        case .shiftTemplates: return try Self.encode(shiftTemplates)
         case .expenses: return try Self.encode(expenses)
         case .employerProfiles: return try Self.encode(employerProfiles)
         case .deductions: return try Self.encode(deductions)
@@ -52,6 +55,7 @@ public struct AccountSnapshot: Codable, Equatable, Sendable {
         let decoder = JSONDecoder()
         switch collection {
         case .shifts: shifts = try records.map { try decoder.decode(Shift.self, from: $0.data) }
+        case .shiftTemplates: shiftTemplates = try records.map { try decoder.decode(ShiftTemplate.self, from: $0.data) }
         case .expenses: expenses = try records.map { try decoder.decode(Expense.self, from: $0.data) }
         case .employerProfiles: employerProfiles = try records.map { try decoder.decode(EmployerProfile.self, from: $0.data) }
         case .deductions: deductions = try records.map { try decoder.decode(Deduction.self, from: $0.data) }
@@ -70,7 +74,7 @@ public enum AccountSyncError: Error, CustomNSError {
 }
 
 public enum SyncCollection: String, Codable, CaseIterable, Sendable {
-    case shifts, expenses, employerProfiles, deductions, actualPayments, recurringExpenses
+    case shifts, shiftTemplates, expenses, employerProfiles, deductions, actualPayments, recurringExpenses
 }
 
 public struct SyncRecord: Codable, Equatable, Sendable {

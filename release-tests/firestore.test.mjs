@@ -39,6 +39,16 @@ test('account deletion clears all six arrays and retains a marker',async()=>{
  await assertSucceeds(setDoc(ref(client),{...blank(),_syncRevision:2,_accountDeleted:true,_deletionToken:'token'}));
  await assertFails(deleteDoc(ref(client)));
 });
+test('templates are optional for older accounts and must be a list when present',async()=>{
+ const client=db(); await assertSucceeds(setDoc(ref(client),blank()));
+ await assertSucceeds(setDoc(ref(client),{...blank(),_syncRevision:2,shiftTemplates:[{id:'early'},{id:'late'}]}));
+ await assertFails(setDoc(ref(client),{...blank(),_syncRevision:3,shiftTemplates:'broken'}));
+});
+test('account deletion must also remove saved templates',async()=>{
+ await seed({...blank(),shiftTemplates:[{id:'keep'}]}); const client=db();
+ await assertFails(setDoc(ref(client),{...blank(),_syncRevision:2,_accountDeleted:true,_deletionToken:'token',shiftTemplates:[{id:'keep'}]}));
+ await assertSucceeds(setDoc(ref(client),{...blank(),_syncRevision:2,_accountDeleted:true,_deletionToken:'token',shiftTemplates:[]}));
+});
 test('stale session cannot recreate deleted account; fresh matching rollback can',async()=>{
  await seed({...blank(),_syncRevision:2,_accountDeleted:true,_deletionToken:'token'});
  const old=db(uid,Math.floor(Date.now()/1000)-600), fresh=db();

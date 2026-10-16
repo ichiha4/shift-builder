@@ -87,6 +87,35 @@ public struct Shift: Codable, Equatable, Identifiable, Sendable {
     public var hasPreciseBreak: Bool { breakStartMinute != nil && breakMinutes > 0 }
 }
 
+/// A reusable pattern, stored separately so it never counts as a worked or scheduled day.
+public struct ShiftTemplate: Codable, Equatable, Identifiable, Sendable {
+    public var id: String
+    public var pattern: Shift
+
+    public init(id: String = UUID().uuidString, pattern: Shift) {
+        self.id = id
+        self.pattern = Self.normalized(pattern)
+    }
+
+    public func shift(on date: String) -> Shift { pattern.repeated(on: date) }
+
+    public var fingerprint: String { Self.fingerprint(pattern) }
+
+    public static func fingerprint(_ shift: Shift) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return (try? encoder.encode(normalized(shift)).base64EncodedString()) ?? shift.id
+    }
+
+    private static func normalized(_ shift: Shift) -> Shift {
+        var value = shift
+        value.id = ""
+        value.date = ""
+        value.isStatutoryHoliday = false
+        return value
+    }
+}
+
 /// How a payday that lands on a weekend or Japanese national holiday gets adjusted. Most
 /// companies pay early (前倒し) rather than late, so that's the default — but it varies enough
 /// by employer that it's worth exposing rather than assuming.
