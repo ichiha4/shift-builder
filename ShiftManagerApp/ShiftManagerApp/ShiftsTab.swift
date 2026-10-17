@@ -4,6 +4,7 @@ struct ShiftsTab: View {
     @EnvironmentObject var store: ShiftStore
     @EnvironmentObject var notifications: NotificationLogStore
     @Environment(\.locale) private var locale
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var month: String
@@ -463,8 +464,11 @@ struct ShiftsTab: View {
     private func formatChip(_ format: ShiftFormat) -> some View {
         let added = isFormatAdded(format)
         let overlaps = !added && ShiftScenario.hasOverlap(format.source.repeated(on: selectedDate), with: store.shifts)
-        let mint = Color(red: 0.40, green: 0.91, blue: 0.73)
-        let signal = overlaps ? Color(red: 1, green: 0.74, blue: 0.43) : mint
+        let isDark = colorScheme == .dark
+        let green = isDark ? Color(red: 0.40, green: 0.91, blue: 0.73) : Color(red: 0.035, green: 0.44, blue: 0.33)
+        let signal = overlaps ? (isDark ? Color(red: 1, green: 0.74, blue: 0.43) : Color(red: 0.65, green: 0.34, blue: 0.09)) : green
+        let ink = isDark ? Color.white : Color(red: 0.12, green: 0.20, blue: 0.18)
+        let secondaryInk = isDark ? Color.white.opacity(0.72) : Color(red: 0.34, green: 0.42, blue: 0.38)
         let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
         return Button {
             quickAdd(format)
@@ -476,7 +480,7 @@ struct ShiftsTab: View {
                         .foregroundStyle(signal)
                     Text(format.employer)
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.88))
+                        .foregroundStyle(ink.opacity(isDark ? 0.88 : 0.85))
                         .lineLimit(1)
                     Spacer(minLength: 0)
                 }
@@ -495,7 +499,7 @@ struct ShiftsTab: View {
                     }
                 }
 
-                Rectangle().fill(.white.opacity(0.14)).frame(height: 0.5)
+                Rectangle().fill(isDark ? Color.white.opacity(0.14) : green.opacity(0.14)).frame(height: 0.5)
 
                 HStack(spacing: 6) {
                     VStack(alignment: .leading, spacing: 2) {
@@ -504,17 +508,17 @@ struct ShiftsTab: View {
                         } else if overlaps {
                             Text("時間重複").foregroundStyle(signal)
                         } else if format.segments.count > 1 {
-                            Text("\(format.segments.count)区分").foregroundStyle(.white.opacity(0.72))
+                            Text("\(format.segments.count)区分").foregroundStyle(secondaryInk)
                         } else if let segment = format.segments.first {
                             HStack(spacing: 3) {
                                 Text("時給")
                                 Text(yen(segment.hourlyWage))
                             }
-                            .foregroundStyle(.white.opacity(0.72))
+                            .foregroundStyle(secondaryInk)
                         }
                         if format.source.breakMinutes > 0 {
                             Text("休憩\(format.source.breakMinutes)分")
-                                .foregroundStyle(.white.opacity(0.62))
+                                .foregroundStyle(secondaryInk)
                         }
                     }
                     .font(.caption2)
@@ -522,9 +526,9 @@ struct ShiftsTab: View {
                     Spacer(minLength: 0)
                     Image(systemName: added ? "checkmark" : (overlaps ? "exclamationmark" : "plus"))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(added || overlaps ? signal : Color(red: 0.05, green: 0.16, blue: 0.13))
+                        .foregroundStyle(added || overlaps ? signal : (isDark ? Color(red: 0.05, green: 0.16, blue: 0.13) : .white))
                         .frame(width: 28, height: 28)
-                        .background(added || overlaps ? signal.opacity(0.12) : signal, in: Circle())
+                        .background(added || overlaps ? signal.opacity(isDark ? 0.12 : 0.08) : signal, in: Circle())
                         .overlay {
                             Circle().strokeBorder(signal.opacity(added || overlaps ? 0.4 : 0), lineWidth: 0.75)
                         }
@@ -534,19 +538,23 @@ struct ShiftsTab: View {
             .padding(16)
             .frame(width: templateCardWidth, alignment: .leading)
             .background {
-                LinearGradient(colors: [Color(red: 0.10, green: 0.13, blue: 0.14), Color(red: 0.045, green: 0.065, blue: 0.06)],
+                LinearGradient(colors: isDark
+                               ? [Color(red: 0.10, green: 0.13, blue: 0.14), Color(red: 0.045, green: 0.065, blue: 0.06)]
+                               : [.white, Color(red: 0.97, green: 0.985, blue: 0.98)],
                                startPoint: .topLeading, endPoint: .bottomTrailing)
                     .overlay {
-                        RadialGradient(colors: [signal.opacity(added ? 0.25 : 0.14), .clear],
+                        RadialGradient(colors: [signal.opacity(isDark ? (added ? 0.25 : 0.14) : (added ? 0.15 : 0.08)), .clear],
                                        center: .topTrailing, startRadius: 0, endRadius: 170)
                     }
             }
             .clipShape(shape)
             .overlay {
-                shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.24), signal.opacity(added ? 0.55 : 0.16), .white.opacity(0.07)],
+                shape.strokeBorder(LinearGradient(colors: isDark
+                                                 ? [.white.opacity(0.24), signal.opacity(added ? 0.55 : 0.16), .white.opacity(0.07)]
+                                                 : [.white, signal.opacity(added ? 0.42 : 0.17), green.opacity(0.13)],
                                                  startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(0.13), radius: 6, x: 0, y: 4)
+            .shadow(color: .black.opacity(isDark ? 0.13 : 0.075), radius: 6, x: 0, y: 4)
             .contentShape(shape)
         }
         .buttonStyle(TemplateCardButtonStyle(reduceMotion: reduceMotion))
@@ -568,10 +576,11 @@ struct ShiftsTab: View {
 
     private func templateTime(_ title: LocalizedStringKey, minute: Int) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption2).foregroundStyle(.white.opacity(0.58))
+            Text(title).font(.caption2)
+                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.58) : Color(red: 0.34, green: 0.42, blue: 0.38))
             Text(ClockUtils.formatClock(minute))
                 .font(.title3.weight(.regular))
-                .foregroundStyle(.white)
+                .foregroundStyle(colorScheme == .dark ? Color.white : Color(red: 0.12, green: 0.20, blue: 0.18))
                 .lineLimit(1).minimumScaleFactor(0.8)
         }
     }
