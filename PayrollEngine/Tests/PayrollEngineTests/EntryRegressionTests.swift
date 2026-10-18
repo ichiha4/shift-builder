@@ -241,3 +241,58 @@ final class EntryRegressionTests: XCTestCase {
         }
     }
 }
+
+final class ShiftEntryReviewTests: XCTestCase {
+    private func shift(_ id: String, date: String = "2026-10-20", employer: String = "Cafe",
+                       start: Int = 540, end: Int = 780, wage: Double = 1200) -> Shift {
+        Shift(id: id, date: date, employer: employer,
+              segments: [WorkSegment(startMinute: start, endMinute: end, hourlyWage: wage)])
+    }
+
+    func testValidOverlapIsAConfirmationWhileStrictImportsStillRejectIt() {
+        let existing = shift("saved", employer: "Shop")
+        let candidate = shift("new", start: 600, end: 840)
+        let review = Validation.reviewShift(candidate, existing: [existing])
+        XCTAssertTrue(review.errors.isEmpty)
+        XCTAssertEqual(review.overlappingShifts, [existing])
+        XCTAssertTrue(review.requiresOverlapConfirmation)
+        XCTAssertFalse(Validation.validateShift(candidate, existing: [existing]).isEmpty)
+    }
+
+    func testInvalidInputCannotBeBypassedByConfirmingAnOverlap() {
+        let existing = shift("saved")
+        let review = Validation.reviewShift(shift("bad", wage: 0), existing: [existing])
+        XCTAssertEqual(review.overlappingShifts, [existing])
+        XCTAssertFalse(review.errors.isEmpty)
+        XCTAssertFalse(review.requiresOverlapConfirmation)
+    }
+
+    func testEditingExcludesOnlyItselfAndReportsAllOtherConflictingRecords() {
+        let first = shift("first"), second = shift("second", employer: "Shop", start: 600, end: 720)
+        let adjacent = shift("later", start: 780, end: 960)
+        let review = Validation.reviewShift(first, existing: [first, second, adjacent])
+        XCTAssertEqual(review.overlappingShifts, [second])
+        XCTAssertTrue(review.requiresOverlapConfirmation)
+    }
+
+    func testAdjacentTimesGapsAndDifferentDatesDoNotNeedConfirmation() {
+        var split = shift("split")
+        split.segments = [WorkSegment(startMinute: 540, endMinute: 600, hourlyWage: 1200),
+                          WorkSegment(startMinute: 720, endMinute: 780, hourlyWage: 1300)]
+        for candidate in [shift("gap", start: 600, end: 720), shift("after", start: 780, end: 960),
+                          shift("next-day", date: "2026-10-21")] {
+            let review = Validation.reviewShift(candidate, existing: [split])
+            XCTAssertTrue(review.errors.isEmpty)
+            XCTAssertTrue(review.overlappingShifts.isEmpty)
+            XCTAssertFalse(review.requiresOverlapConfirmation)
+        }
+    }
+
+    func testOvernightReviewIdentifiesTheConflictingNeighbouringDay() {
+        let night = shift("night", start: 1320, end: 180)
+        let morning = shift("morning", date: "2026-10-21", start: 120, end: 360)
+        let later = shift("later", date: "2026-10-21", start: 360, end: 480)
+        XCTAssertEqual(Validation.reviewShift(morning, existing: [night, later]).overlappingShifts, [night])
+        XCTAssertFalse(Validation.reviewShift(later, existing: [night]).requiresOverlapConfirmation)
+    }
+}

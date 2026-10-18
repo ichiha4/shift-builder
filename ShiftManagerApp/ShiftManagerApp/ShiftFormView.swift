@@ -27,6 +27,7 @@ struct ShiftFormView: View {
     @State private var showEmployerProfileSheet = false
     @State private var untimedBreakText: String = "0"
     @State private var errors: [String] = []
+    @State private var overlapRequest: ShiftSaveRequest?
     @FocusState private var employerFieldFocused: Bool
 
     struct SegmentDraft: Identifiable {
@@ -211,6 +212,21 @@ struct ShiftFormView: View {
                     Button(isTemplate ? "保存" : (existing == nil ? "追加" : "更新")) { save() }
                 }
             }
+            .alert("勤務時間が重なっています", isPresented: Binding(
+                get: { overlapRequest != nil },
+                set: { if !$0 { overlapRequest = nil } }
+            ), presenting: overlapRequest) { request in
+                Button("キャンセル", role: .cancel) { overlapRequest = nil }
+                Button(request.isEditing ? "更新する" : "追加する") {
+                    overlapRequest = nil
+                    finishSaving(request, confirmingOverlap: true)
+                }
+            } message: { request in
+                Text(shiftOverlapMessage(for: request, locale: locale))
+            }
+            .onChange(of: store.cloudDataReady) { _, ready in
+                if !ready { overlapRequest = nil }
+            }
             .onChange(of: employer) { _, newValue in applyProfileDefaultsIfNeeded(for: newValue) }
             .onAppear {
                 if existing == nil && employer.isEmpty && employerChoices.isEmpty {
@@ -311,12 +327,10 @@ struct ShiftFormView: View {
             return
         }
         let candidate = draftShift
-        let validationErrors = Validation.validateShift(candidate, existing: isTemplate ? [] : store.shifts)
-        guard validationErrors.isEmpty else {
-            errors = validationErrors
-            return
-        }
+        errors = []
         if isTemplate {
+            let validationErrors = Validation.validateShift(candidate, existing: [])
+            guard validationErrors.isEmpty else { errors = validationErrors; return }
             let template = ShiftTemplate(pattern: candidate)
             guard store.saveShiftTemplate(template) else {
                 errors = ["同期の状態を確認して、もう一度お試しください。"]
@@ -325,17 +339,53 @@ struct ShiftFormView: View {
             onTemplateSaved?(template)
             dismiss()
             return
-        } else if existing != nil {
-            store.updateShift(candidate)
+        }
+        do {
+            let request = try store.prepareShiftSave(candidate, editing: existing != nil)
+            if request.requiresOverlapConfirmation { overlapRequest = request }
+            else { finishSaving(request) }
+        } catch {
+            errors = [error.localizedDescription]
+        }
+    }
+
+    private func finishSaving(_ request: ShiftSaveRequest, confirmingOverlap: Bool = false) {
+        do {
+            try store.saveReviewedShift(request, confirmingOverlap: confirmingOverlap)
+        } catch {
+            errors = [error.localizedDescription]
+            return
+        }
+        let candidate = request.shift
+        if request.isEditing {
             notifications.log(kind: .updated, title: "シフトを更新しました", message: "\(candidate.employer)・\(DateUtils.formatFullDate(candidate.date))")
         } else {
-            store.addShift(candidate)
             notifications.log(kind: .added, title: "シフトを追加しました", message: "\(candidate.employer)・\(DateUtils.formatFullDate(candidate.date))")
         }
         NotificationScheduler.requestAuthorizationIfNeeded()
         NotificationScheduler.scheduleReminder(for: candidate)
         dismiss()
     }
+}
+
+/// Describe the exact candidate and conflicts captured before the user accepts.
+func shiftOverlapMessage(for request: ShiftSaveRequest, locale: Locale) -> String {
+    func summary(_ shift: Shift) -> String {
+        let times = shift.segments.map {
+            "\(ClockUtils.formatClock($0.startMinute))–\(ClockUtils.formatClock($0.endMinute))"
+        }.joined(separator: " / ")
+        return "\(DateUtils.formatFullDate(shift.date, locale: locale))\n\(shift.employer)  \(times)"
+    }
+    let prompt = NSLocalizedString(request.isEditing
+        ? "登録済みのシフトと勤務時間が重なっています。この内容で更新しますか？"
+        : "登録済みのシフトと勤務時間が重なっています。追加しますか？", comment: "")
+    var conflicts = request.overlappingShifts.prefix(3).map(summary).joined(separator: "\n")
+    if request.overlappingShifts.count > 3 {
+        conflicts += "\n" + String(format: NSLocalizedString("ほか%lld件", comment: ""), Int64(request.overlappingShifts.count - 3))
+    }
+    return [prompt, summary(request.shift),
+            NSLocalizedString("重なっているシフト", comment: "") + "\n" + conflicts,
+            NSLocalizedString("重なった勤務も給与予定に含まれます。", comment: "")].joined(separator: "\n\n")
 }
 
 private func trimmedHours(_ minutes: Int) -> String {

@@ -365,4 +365,191 @@ final class ShiftTemplateStoreTests: XCTestCase {
         XCTAssertNil(defaults.data(forKey: "shiftmgr.shiftTemplates"))
     }
 }
+@MainActor
+final class ShiftSaveReviewTests: XCTestCase {
+    private var suiteName = ""
+    private var defaults: UserDefaults!
+    private var store: ShiftStore!
+    private let now = Date(timeIntervalSince1970: 1_790_000_000)
+
+    override func setUp() {
+        super.setUp()
+        suiteName = "ShiftBuilder.SaveReviewTests." + UUID().uuidString
+        defaults = UserDefaults(suiteName: suiteName)!
+        store = ShiftStore(defaults: defaults, remindersEnabled: false)
+        store.attachUser(uid: LocalDeviceTestTransport.accountID)
+        XCTAssertTrue(store.cloudDataReady)
+    }
+
+    override func tearDown() {
+        store.detachUser(clearLocalState: false)
+        defaults.removePersistentDomain(forName: suiteName)
+        store = nil
+        defaults = nil
+        super.tearDown()
+    }
+
+    private var payslip: MonthlyPayslip {
+        Aggregation.calculateMonthlyPay(store.shifts, classifications: store.classifications)
+    }
+
+    private func shift(_ id: String, employer: String = "Cafe", start: Int = 540, end: Int = 780) -> Shift {
+        Shift(id: id, date: "2026-10-20", employer: employer,
+              segments: [WorkSegment(startMinute: start, endMinute: end, hourlyWage: 1200)])
+    }
+
+    private func save(_ shift: Shift, confirmingOverlap: Bool = false) throws {
+        try store.saveReviewedShift(store.prepareShiftSave(shift), confirmingOverlap: confirmingOverlap)
+    }
+
+    private func waitForSaved() async throws {
+        for _ in 0..<200 {
+            if store.pendingSyncCount == 0 && !store.syncWriteFailed { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTFail("Local records were not committed")
+    }
+
+    func testPreparingAndCancellingConfirmationLeavesRecordsAndPayUnchanged() throws {
+        try save(shift("existing"))
+        let before = store.shifts
+        let pay = payslip
+        let request = try store.prepareShiftSave(shift("candidate", employer: "Shop", start: 600, end: 840))
+        XCTAssertTrue(request.requiresOverlapConfirmation)
+        XCTAssertEqual(request.overlappingShifts, before)
+        XCTAssertEqual(store.shifts, before)
+        XCTAssertEqual(payslip, pay)
+        XCTAssertThrowsError(try store.saveReviewedShift(request)) {
+            XCTAssertEqual($0 as? ShiftSaveError, .confirmationRequired)
+        }
+        XCTAssertEqual(store.shifts, before)
+    }
+
+    func testConfirmedOverlapPersistsExactlyOnceWithAllConditions() async throws {
+        let first = shift("existing")
+        try save(first)
+        var candidate = shift("candidate", employer: "Shop", start: 600, end: 840)
+        candidate.segments[0].hourlyWage = 1234.75
+        candidate.breakMinutes = 15; candidate.breakStartMinute = 630
+        candidate.transport = 250.5; candidate.otherAllowance = 12.25
+        let request = try store.prepareShiftSave(candidate)
+        try store.saveReviewedShift(request, confirmingOverlap: true)
+        XCTAssertEqual(store.shifts, [first, candidate])
+        XCTAssertThrowsError(try store.saveReviewedShift(request, confirmingOverlap: true)) {
+            XCTAssertEqual($0 as? ShiftSaveError, .recordsChanged)
+        }
+        try await waitForSaved()
+        store.detachUser(clearLocalState: false)
+        store = ShiftStore(defaults: defaults, remindersEnabled: false)
+        store.attachUser(uid: LocalDeviceTestTransport.accountID)
+        XCTAssertEqual(store.shifts.sorted { $0.id < $1.id }, [first, candidate].sorted { $0.id < $1.id })
+        XCTAssertEqual(payslip.grossTotal, 4800 + 1234.75 * 3.75 + 250.5 + 12.25, accuracy: 0.01)
+    }
+
+    func testInvalidOverlappingCandidateIsRejectedBeforeConfirmation() throws {
+        try save(shift("existing"))
+        var candidate = shift("bad")
+        candidate.segments[0].hourlyWage = 0
+        XCTAssertThrowsError(try store.prepareShiftSave(candidate)) {
+            guard let error = $0 as? ShiftSaveError, case .invalid(let errors) = error else { return XCTFail("Expected invalid input") }
+            XCTAssertFalse(errors.isEmpty)
+        }
+        XCTAssertEqual(store.shifts.count, 1)
+    }
+
+    func testConsentDoesNotCoverAConflictAddedWhilePromptWasOpen() throws {
+        try save(shift("existing"))
+        let request = try store.prepareShiftSave(shift("candidate", start: 600, end: 840))
+        store.addShift(shift("incoming", employer: "Another job", start: 780, end: 900))
+        XCTAssertThrowsError(try store.saveReviewedShift(request, confirmingOverlap: true)) {
+            XCTAssertEqual($0 as? ShiftSaveError, .recordsChanged)
+        }
+        XCTAssertEqual(Set(store.shifts.map(\.id)), ["existing", "incoming"])
+    }
+
+    func testConsentDoesNotCoverChangedConflictConditions() throws {
+        var existing = shift("existing")
+        try save(existing)
+        let request = try store.prepareShiftSave(shift("candidate", start: 600, end: 840))
+        existing.segments[0].hourlyWage = 1500
+        store.updateShift(existing)
+        XCTAssertThrowsError(try store.saveReviewedShift(request, confirmingOverlap: true)) {
+            XCTAssertEqual($0 as? ShiftSaveError, .recordsChanged)
+        }
+        XCTAssertEqual(store.shifts, [existing])
+    }
+
+    func testConsentCannotCarryAcrossReattachedAccountSessions() async throws {
+        try save(shift("existing"))
+        try await waitForSaved()
+        let request = try store.prepareShiftSave(shift("candidate"))
+        store.detachUser(clearLocalState: false)
+        store.attachUser(uid: LocalDeviceTestTransport.accountID)
+        XCTAssertTrue(store.cloudDataReady)
+        XCTAssertThrowsError(try store.saveReviewedShift(request, confirmingOverlap: true)) {
+            XCTAssertEqual($0 as? ShiftSaveError, .unavailable)
+        }
+        XCTAssertEqual(store.shifts.map(\.id), ["existing"])
+    }
+
+    func testEditingAnOverlapUpdatesTheOriginalInsteadOfAddingAnotherRecord() throws {
+        var first = shift("first")
+        try save(first); try save(shift("second", start: 780, end: 1020))
+        first.segments[0].hourlyWage = 1250
+        let ownEdit = try store.prepareShiftSave(first, editing: true)
+        XCTAssertFalse(ownEdit.requiresOverlapConfirmation)
+        try store.saveReviewedShift(ownEdit)
+        first.segments[0].endMinute = 840
+        let overlapEdit = try store.prepareShiftSave(first, editing: true)
+        XCTAssertTrue(overlapEdit.requiresOverlapConfirmation)
+        try store.saveReviewedShift(overlapEdit, confirmingOverlap: true)
+        XCTAssertEqual(store.shifts.count, 2)
+        XCTAssertEqual(store.shifts.first, first)
+    }
+
+    func testEditConfirmationDoesNotOverwriteAnInterveningChange() throws {
+        let first = shift("first")
+        try save(first); try save(shift("second", start: 780, end: 1020))
+        var edited = first; edited.segments[0].endMinute = 840
+        let request = try store.prepareShiftSave(edited, editing: true)
+        var incoming = first; incoming.transport = 999
+        store.updateShift(incoming)
+        XCTAssertThrowsError(try store.saveReviewedShift(request, confirmingOverlap: true)) {
+            XCTAssertEqual($0 as? ShiftSaveError, .recordsChanged)
+        }
+        XCTAssertEqual(store.shifts.first, incoming)
+    }
+
+    func testUndoRestoresAPreviouslyConfirmedOverlappingShift() throws {
+        let first = shift("first"), second = shift("second", employer: "Shop", start: 600, end: 840)
+        try save(first); try save(second, confirmingOverlap: true)
+        let expectedPay = payslip
+        XCTAssertTrue(store.deleteShiftWithUndo(id: second.id, now: now))
+        XCTAssertEqual(try store.undoShiftDeletions(now: now.addingTimeInterval(1)), [second])
+        XCTAssertEqual(store.shifts, [first, second])
+        XCTAssertEqual(payslip, expectedPay)
+    }
+
+    func testUndoRestoresBothMembersOfAPreviouslyOverlappingBatch() throws {
+        let first = shift("first"), second = shift("second", employer: "Shop", start: 600, end: 840)
+        try save(first); try save(second, confirmingOverlap: true)
+        XCTAssertTrue(store.deleteShiftWithUndo(id: first.id, now: now))
+        XCTAssertTrue(store.deleteShiftWithUndo(id: second.id, now: now.addingTimeInterval(0.1)))
+        XCTAssertEqual(Set(try store.undoShiftDeletions(now: now.addingTimeInterval(1)).map(\.id)), [first.id, second.id])
+        XCTAssertEqual(store.shifts, [first, second])
+    }
+
+    func testUndoRejectsAConflictThatChangedAfterDeletion() throws {
+        var first = shift("first")
+        let second = shift("second", employer: "Shop", start: 600, end: 840)
+        try save(first); try save(second, confirmingOverlap: true)
+        XCTAssertTrue(store.deleteShiftWithUndo(id: second.id, now: now))
+        first.segments[0].endMinute = 900
+        store.updateShift(first)
+        XCTAssertThrowsError(try store.undoShiftDeletions(now: now.addingTimeInterval(1))) {
+            XCTAssertEqual($0 as? ShiftDeletionUndoError, .overlappingShift)
+        }
+        XCTAssertEqual(store.shifts, [first])
+    }
+}
 #endif

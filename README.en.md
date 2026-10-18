@@ -9,7 +9,7 @@ An iOS shift and pay tracker for students and hourly workers. Reuse recorded shi
 ## The core experience
 
 - **Create templates directly:** save employer, hours, rate, and breaks without a date. Keep morning and afternoon patterns for the same employer. Saving a template adds no actual shifts or scheduled pay, and saved templates survive shift deletion. Recorded shift patterns also remain reusable. [Creation screen](docs/screenshots/template-create-current.png)
-- **Two actions to add a usual shift:** select a calendar date, then tap a template. The shift saves immediately. Added patterns receive a checkmark; overlapping work is blocked. Template order stays stable during repeated entry.
+- **Two actions to add a usual shift:** select a calendar date, then tap a template. Non-overlapping shifts save immediately. Added patterns receive a checkmark. Overlapping work stays selectable: review the saved shifts and explicitly confirm to add it. Manual entry and edits use the same confirmation; confirmed overlapping work also counts toward scheduled pay. Template order stays stable during repeated entry. [Confirmation screen](docs/screenshots/overlap-confirmation-current.png)
 - **Manual entry starts with a blank employer:** choose a saved employer or a workplace from shift history, or type a new name. Workplaces remain selectable even before their payday is configured.
 - **One-tap deletion with undo:** remove a shift immediately, then restore it from the five-second Undo card just above the month heading. A countdown and shrinking bar show the time left to undo. Each consecutive deletion restarts the five-second window for the whole batch; the calendar stays in place.
 - **A home screen worth opening:** next month's estimated gross pay uses employer-specific closing days, paydays, and holiday adjustments. The chart shows cumulative scheduled payouts, alongside the next shift and an option to hide the headline amount.
@@ -23,7 +23,7 @@ An iOS shift and pay tracker for students and hourly workers. Reuse recorded shi
 </tr>
 </table>
 
-Actual simulator captures from October 16–17, 2026. All employers, shifts, amounts, and annual limits are fictional test data. The sample limit is not a statement of a legal threshold.
+Actual simulator captures from October 16–19, 2026. All employers, shifts, amounts, and annual limits are fictional test data. The sample limit is not a statement of a legal threshold.
 
 The annual tracker adds entered taxable gross only, excluding non-taxable items. It never treats legacy take-home records or shift estimates as actual annual earnings. Users set their own limit; the tracker does not determine health-insurance dependency from calendar-year totals.
 
@@ -57,7 +57,7 @@ cd PayrollEngine
 swift test --jobs 1
 ```
 
-On October 17, 2026, all 170 calculation/sync-package tests, 17 selected iOS persistence/undo tests, and 12 Firestore Emulator rules tests passed. Coverage includes multiple templates per employer, separation from actual shifts, persistence, deletion, and synchronization. Previously recorded iOS XCTest results were 38 passed and 4 Firestore Emulator tests skipped. See [validation scope](docs/VALIDATION.md) for current build and simulator checks and remaining limitations.
+On October 17, 2026, all 175 calculation/sync-package tests and 28 selected iOS tests passed. Coverage includes overlap confirmation, saving only after consent, cancellation without changes, detecting intervening changes, restoring approved overlaps, payslip records, and saved templates. The latest Firestore Emulator rules result remains 12 passed; rules and storage formats did not change, so those tests were not rerun for this feature. Previously recorded full iOS XCTest results were 38 passed and 4 Firestore Emulator tests skipped. See [validation scope](docs/VALIDATION.md) for current build and simulator checks and remaining limitations.
 
 Production configuration, signing identifiers, credentials, build outputs, and backups are excluded. App Store Connect, TestFlight/Sandbox, and end-to-end real-device verification remain unfinished.
 

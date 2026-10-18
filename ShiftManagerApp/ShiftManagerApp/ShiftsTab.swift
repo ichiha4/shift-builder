@@ -18,6 +18,7 @@ struct ShiftsTab: View {
     @State private var newlySavedTemplateKey: String?
     @State private var templateToDelete: ShiftFormat?
     @State private var editingShift: Shift?
+    @State private var overlapRequest: ShiftSaveRequest?
     @State private var dismissedFormatKeys: Set<String> = Set(
         UserDefaults.standard.stringArray(forKey: "shiftmgr.dismissedShiftFormats") ?? []
     )
@@ -109,20 +110,30 @@ struct ShiftsTab: View {
         ShiftTemplate.fingerprint(shift)
     }
 
-    /// Adds a shift for `selectedDate` straight from a format — no form, matching how a manual
-    /// add is logged/reminded so a quick-added shift behaves identically to one typed by hand.
+    /// Save ordinary taps immediately; capture overlapping additions for explicit consent.
     private func quickAdd(_ format: ShiftFormat) {
         guard !isFormatAdded(format) else { return }
-        let shift = format.source.repeated(on: selectedDate)
-        let errors = Validation.validateShift(shift, existing: store.shifts)
-        guard errors.isEmpty else {
-            actionError = ActionError(title: "シフトを追加できません", message: errors.joined(separator: "\n"))
-            return
+        do {
+            let request = try store.prepareShiftSave(format.source.repeated(on: selectedDate))
+            if request.requiresOverlapConfirmation { overlapRequest = request }
+            else { finishQuickAdd(request) }
+        } catch {
+            actionError = ActionError(title: "シフトを追加できません", message: error.localizedDescription)
         }
-        store.addShift(shift)
-        quickAddCount += 1
-        notifications.log(kind: .added, title: "シフトを追加しました", message: "\(shift.employer)・\(DateUtils.formatFullDate(shift.date, locale: locale))")
-        NotificationScheduler.scheduleReminder(for: shift)
+    }
+
+    private func finishQuickAdd(_ request: ShiftSaveRequest, confirmingOverlap: Bool = false) {
+        let shift = request.shift
+        // A sync update during the prompt must not add the same template a second time.
+        guard !store.shifts.contains(where: { $0.date == shift.date && Self.formatKey($0) == Self.formatKey(shift) }) else { return }
+        do {
+            try store.saveReviewedShift(request, confirmingOverlap: confirmingOverlap)
+            quickAddCount += 1
+            notifications.log(kind: .added, title: "シフトを追加しました", message: "\(shift.employer)・\(DateUtils.formatFullDate(shift.date, locale: locale))")
+            NotificationScheduler.scheduleReminder(for: shift)
+        } catch {
+            actionError = ActionError(title: "シフトを追加できません", message: error.localizedDescription)
+        }
     }
 
     private func dismissFormat(_ format: ShiftFormat) {
@@ -182,6 +193,9 @@ struct ShiftsTab: View {
                 if phase == .active { store.expireShiftDeletionUndo() }
             }
             .onChange(of: requestedDate) { _, _ in selectRequestedDate() }
+            .onChange(of: store.cloudDataReady) { _, ready in
+                if !ready { overlapRequest = nil }
+            }
             .sheet(isPresented: $showAddSheet) {
                 ShiftFormView(date: selectedDate, existing: nil)
                     .environmentObject(store)
@@ -221,6 +235,18 @@ struct ShiftsTab: View {
                 Button("キャンセル", role: .cancel) { templateToDelete = nil }
             } message: { _ in
                 Text("登録済みのシフトは削除されません。")
+            }
+            .alert("勤務時間が重なっています", isPresented: Binding(
+                get: { overlapRequest != nil },
+                set: { if !$0 { overlapRequest = nil } }
+            ), presenting: overlapRequest) { request in
+                Button("キャンセル", role: .cancel) { overlapRequest = nil }
+                Button("追加する") {
+                    overlapRequest = nil
+                    finishQuickAdd(request, confirmingOverlap: true)
+                }
+            } message: { request in
+                Text(shiftOverlapMessage(for: request, locale: locale))
             }
         }
     }
@@ -340,8 +366,7 @@ struct ShiftsTab: View {
         .appCard()
     }
 
-    /// Full template matches get an "added" checkmark. Other overlapping patterns are
-    /// identified separately so a changed wage cannot create a second copy of the same work.
+    /// Keep exact template double taps disabled; different overlapping patterns ask first.
     private func isFormatAdded(_ format: ShiftFormat) -> Bool {
         dayShifts.contains { Self.formatKey($0) == format.id }
     }
@@ -449,7 +474,7 @@ struct ShiftsTab: View {
 
             HStack(alignment: .firstTextBaseline) {
                 if !recentFormats.isEmpty {
-                    Text("タップでこの日に追加").font(.caption)
+                    Text(recentFormats.allSatisfy { isFormatAdded($0) } ? "この日は追加済みです" : "タップでこの日に追加").font(.caption)
                 }
                 Spacer(minLength: 8)
                 if !dismissedFormatKeys.isEmpty {
@@ -506,7 +531,7 @@ struct ShiftsTab: View {
                         if added {
                             Text("追加済み").foregroundStyle(signal)
                         } else if overlaps {
-                            Text("時間重複").foregroundStyle(signal)
+                            Text("確認して追加").foregroundStyle(signal)
                         } else if format.segments.count > 1 {
                             Text("\(format.segments.count)区分").foregroundStyle(secondaryInk)
                         } else if let segment = format.segments.first {
@@ -524,13 +549,13 @@ struct ShiftsTab: View {
                     .font(.caption2)
                     .lineLimit(1)
                     Spacer(minLength: 0)
-                    Image(systemName: added ? "checkmark" : (overlaps ? "exclamationmark" : "plus"))
+                    Image(systemName: added ? "checkmark" : "plus")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(added || overlaps ? signal : (isDark ? Color(red: 0.05, green: 0.16, blue: 0.13) : .white))
+                        .foregroundStyle(added ? signal : (isDark ? Color(red: 0.05, green: 0.16, blue: 0.13) : .white))
                         .frame(width: 28, height: 28)
-                        .background(added || overlaps ? signal.opacity(isDark ? 0.12 : 0.08) : signal, in: Circle())
+                        .background(added ? signal.opacity(isDark ? 0.12 : 0.08) : signal, in: Circle())
                         .overlay {
-                            Circle().strokeBorder(signal.opacity(added || overlaps ? 0.4 : 0), lineWidth: 0.75)
+                            Circle().strokeBorder(signal.opacity(added ? 0.4 : 0), lineWidth: 0.75)
                         }
                 }
                 .frame(minHeight: 28)
@@ -558,13 +583,13 @@ struct ShiftsTab: View {
             .contentShape(shape)
         }
         .buttonStyle(TemplateCardButtonStyle(reduceMotion: reduceMotion))
-        .disabled(added || overlaps)
+        .disabled(added)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityAddTraits(added ? [.isSelected] : [])
         .accessibilityLabel("\(format.employer)、\(chipSummary(format.segments))")
-        .accessibilityValue(added ? Text("追加済み") : (overlaps ? Text("時間重複") : Text("")))
-        .accessibilityHint(added ? Text("") : (overlaps ? Text("登録済みのシフトと勤務時間が重複しています。既存のシフトを確認・編集してください。") : Text("タップでこの日に追加")))
+        .accessibilityValue(added ? Text("追加済み") : (overlaps ? Text("時間重複・確認して追加") : Text("")))
+        .accessibilityHint(added ? Text("") : (overlaps ? Text("登録済みのシフトと時間が重なります。タップすると追加前に確認できます。") : Text("タップでこの日に追加")))
         .contextMenu {
             Button(role: .destructive) {
                 dismissFormat(format)

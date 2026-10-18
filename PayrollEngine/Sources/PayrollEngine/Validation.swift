@@ -24,16 +24,30 @@ public enum FormNumber {
     }
 }
 
+/// Structural errors block saving; overlaps with other records can be explicitly confirmed.
+public struct ShiftEntryReview: Equatable, Sendable {
+    public let errors: [String]
+    public let overlappingShifts: [Shift]
+    public var requiresOverlapConfirmation: Bool { errors.isEmpty && !overlappingShifts.isEmpty }
+}
+
 public enum Validation {
-    /// Shared save validation for manual entry, templates, and imports. An edited shift does
-    /// not conflict with itself; other employers and adjacent overnight dates still count.
-    public static func validateShift(_ shift: Shift, existing: [Shift]) -> [String] {
-        var errors = validateShift(
+    /// Interactive entry separates invalid input from overlaps the user may confirm.
+    public static func reviewShift(_ shift: Shift, existing: [Shift]) -> ShiftEntryReview {
+        let errors = validateShift(
             segments: shift.segments, breakMinutes: shift.breakMinutes,
             breakStartMinute: shift.breakStartMinute, lateNightRate: shift.lateNightRate,
             overtimeRate: shift.overtimeRate, holidayRate: shift.holidayRate
         )
-        if ShiftScenario.hasOverlap(shift, with: existing.filter { $0.id != shift.id }) {
+        let overlaps = existing.filter { $0.id != shift.id && ShiftScenario.hasOverlap(shift, with: [$0]) }
+        return ShiftEntryReview(errors: errors, overlappingShifts: overlaps)
+    }
+
+    /// Strict validation remains available for imports and operations without a consent UI.
+    public static func validateShift(_ shift: Shift, existing: [Shift]) -> [String] {
+        let review = reviewShift(shift, existing: existing)
+        var errors = review.errors
+        if !review.overlappingShifts.isEmpty {
             errors.append("登録済みのシフトと勤務時間が重複しています。既存のシフトを確認・編集してください。")
         }
         return errors

@@ -14,6 +14,33 @@ enum ShiftDeletionUndoError: LocalizedError, Equatable {
     }
 }
 
+struct ShiftSaveRequest {
+    let shift: Shift
+    let overlappingShifts: [Shift]
+    fileprivate let originalShift: Shift?
+    fileprivate let sessionID: UUID
+
+    var requiresOverlapConfirmation: Bool { !overlappingShifts.isEmpty }
+    var isEditing: Bool { originalShift != nil }
+}
+
+enum ShiftSaveError: LocalizedError, Equatable {
+    case unavailable, recordsChanged, confirmationRequired, invalid([String])
+
+    var errorDescription: String? {
+        switch self {
+        case .unavailable:
+            return NSLocalizedString("同期の状態を確認して、もう一度お試しください。", comment: "")
+        case .recordsChanged:
+            return NSLocalizedString("シフトの内容が変わりました。もう一度確認してください。", comment: "")
+        case .confirmationRequired:
+            return NSLocalizedString("勤務時間が重なっています。確認してから追加してください。", comment: "")
+        case .invalid(let errors):
+            return errors.joined(separator: "\n")
+        }
+    }
+}
+
 /// Persists a per-account local journal and syncs record-level changes in Firestore
 /// transactions. Pending edits survive incoming snapshots, offline work and relaunch.
 @MainActor
@@ -34,6 +61,7 @@ final class ShiftStore: ObservableObject {
     private struct DeletedShiftBackup {
         let shift: Shift
         let index: Int
+        let overlappingShifts: [Shift]
     }
     private var deletedShiftBackups: [DeletedShiftBackup] = []
     private var shiftDeletionUndoTask: Task<Void, Never>?
@@ -382,6 +410,32 @@ final class ShiftStore: ObservableObject {
         persist(shiftTemplates, key: Key.shiftTemplates)
     }
 
+    /// Capture the exact candidate, conflicts and account session shown for confirmation.
+    func prepareShiftSave(_ shift: Shift, editing: Bool = false) throws -> ShiftSaveRequest {
+        guard cloudDataReady, !cloudSyncSuspended else { throw ShiftSaveError.unavailable }
+        let original = shifts.first { $0.id == shift.id }
+        guard (editing ? original != nil : original == nil) else { throw ShiftSaveError.recordsChanged }
+        let review = Validation.reviewShift(shift, existing: shifts)
+        guard review.errors.isEmpty else { throw ShiftSaveError.invalid(review.errors) }
+        return ShiftSaveRequest(shift: shift, overlappingShifts: review.overlappingShifts,
+                                originalShift: editing ? original : nil, sessionID: generation)
+    }
+
+    /// Consent applies only to the reviewed records, never to a later or different account.
+    func saveReviewedShift(_ request: ShiftSaveRequest, confirmingOverlap: Bool = false) throws {
+        guard cloudDataReady, !cloudSyncSuspended, request.sessionID == generation else { throw ShiftSaveError.unavailable }
+        let original = shifts.first { $0.id == request.shift.id }
+        guard original == request.originalShift else { throw ShiftSaveError.recordsChanged }
+        let review = Validation.reviewShift(request.shift, existing: shifts)
+        guard review.errors.isEmpty else { throw ShiftSaveError.invalid(review.errors) }
+        if !review.overlappingShifts.isEmpty {
+            guard confirmingOverlap else { throw ShiftSaveError.confirmationRequired }
+            guard review.overlappingShifts.allSatisfy(request.overlappingShifts.contains) else { throw ShiftSaveError.recordsChanged }
+        }
+        if request.isEditing { updateShift(request.shift) } else { addShift(request.shift) }
+        guard shifts.contains(request.shift) else { throw ShiftSaveError.unavailable }
+    }
+
     func addShift(_ shift: Shift) {
         guard cloudDataReady, !cloudSyncSuspended else { return }
         shifts.append(shift)
@@ -432,9 +486,10 @@ final class ShiftStore: ObservableObject {
               let index = shifts.firstIndex(where: { $0.id == id }) else { return false }
         expireShiftDeletionUndo(now: now)
         let deleted = shifts[index]
+        let overlaps = Validation.reviewShift(deleted, existing: shifts).overlappingShifts
         deleteShift(id: id)
         guard !shifts.contains(where: { $0.id == id }) else { return false }
-        deletedShiftBackups.append(DeletedShiftBackup(shift: deleted, index: index))
+        deletedShiftBackups.append(DeletedShiftBackup(shift: deleted, index: index, overlappingShifts: overlaps))
         pendingShiftDeletionCount = deletedShiftBackups.count
         if remindersEnabled { NotificationScheduler.cancelReminder(for: id) }
 
@@ -450,7 +505,7 @@ final class ShiftStore: ObservableObject {
     }
 
     /// Restore the complete batch in one edit, with the original IDs and values.
-    /// A new overlapping shift blocks restoration rather than silently double-booking work.
+    /// Keep previously confirmed overlaps; a new or changed conflict still blocks restoration.
     @discardableResult
     func undoShiftDeletions(now: Date = Date()) throws -> [Shift] {
         expireShiftDeletionUndo(now: now)
@@ -461,9 +516,13 @@ final class ShiftStore: ObservableObject {
         for backup in deletedShiftBackups.reversed() {
             // An incoming record with the same ID wins; never overwrite its newer values.
             guard !proposed.contains(where: { $0.id == backup.shift.id }) else { continue }
-            guard !ShiftScenario.hasOverlap(backup.shift, with: proposed) else {
-                throw ShiftDeletionUndoError.overlappingShift
+            let overlaps = Validation.reviewShift(backup.shift, existing: proposed).overlappingShifts
+            let hasNewOverlap = overlaps.contains { conflict in
+                !backup.overlappingShifts.contains(conflict) && !deletedShiftBackups.contains { other in
+                    other.shift == conflict && other.overlappingShifts.contains(backup.shift)
+                }
             }
+            guard !hasNewOverlap else { throw ShiftDeletionUndoError.overlappingShift }
             proposed.insert(backup.shift, at: min(backup.index, proposed.count))
             restored.append(backup.shift)
         }

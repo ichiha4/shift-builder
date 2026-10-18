@@ -714,3 +714,18 @@
 
 "出勤" = "Start";
 "退勤" = "End";
+
+"勤務時間が重なっています" = "Shift times overlap";
+"登録済みのシフトと勤務時間が重なっています。追加しますか？" = "This overlaps a saved shift. Add it anyway?";
+"登録済みのシフトと勤務時間が重なっています。この内容で更新しますか？" = "This overlaps another saved shift. Update it anyway?";
+"重なっているシフト" = "Overlapping shifts";
+"重なった勤務も給与予定に含まれます。" = "Overlapping work also counts toward scheduled pay.";
+"確認して追加" = "Review to add";
+"時間重複・確認して追加" = "Time overlap; review to add";
+"登録済みのシフトと時間が重なります。タップすると追加前に確認できます。" = "This overlaps a saved shift. Tap to review before adding.";
+"この日は追加済みです" = "Already added for this day";
+"シフトの内容が変わりました。もう一度確認してください。" = "The saved shifts changed. Please review again.";
+"勤務時間が重なっています。確認してから追加してください。" = "Shift times overlap. Please confirm before adding.";
+"更新する" = "Update";
+"追加する" = "Add";
+"ほか%lld件" = "%lld more";
