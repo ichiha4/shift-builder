@@ -487,9 +487,13 @@ struct ShiftsTab: View {
             NavigationStack {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
-                        Text("勤務パターンを編集・削除できます。登録済みのシフトはそのまま残ります。")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                            .padding(.bottom, 4)
+                        HStack {
+                            Text("勤務パターン")
+                            Spacer()
+                            Text("\(formats.count)件")
+                        }
+                        .font(.caption).foregroundStyle(.secondary)
+                        .padding(.horizontal, 4).padding(.bottom, 4)
                         if formats.isEmpty {
                             Text("表示中のテンプレートはありません。")
                                 .font(.subheadline).foregroundStyle(.secondary)
@@ -498,16 +502,22 @@ struct ShiftsTab: View {
                         ForEach(formats) { format in
                             templateRow(format)
                         }
+                        Text("登録済みのシフトはそのまま残ります。")
+                            .font(.caption).foregroundStyle(.secondary)
+                            .padding(.horizontal, 4).padding(.top, 8)
                     }
                     .padding(16)
                     .readableColumn()
                 }
                 .background(Color(.systemGroupedBackground))
-                .navigationTitle("テンプレートを管理")
+                .navigationTitle("テンプレート")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("閉じる") { dismiss() }
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark").font(.subheadline.weight(.medium))
+                        }
+                        .accessibilityLabel("閉じる")
                     }
                 }
                 .sheet(item: $editingFormat) { format in
@@ -544,51 +554,103 @@ struct ShiftsTab: View {
         }
 
         private func templateRow(_ format: ShiftFormat) -> some View {
-            VStack(alignment: .leading, spacing: 14) {
-                Label {
-                    Text(format.employer).font(.headline)
-                        .fixedSize(horizontal: false, vertical: true)
-                } icon: {
-                    Image(systemName: "briefcase").foregroundStyle(accent)
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(format.segments.indices, id: \.self) { index in
-                        let segment = format.segments[index]
-                        let time = Text(verbatim: "\(ClockUtils.formatClock(segment.startMinute))–\(ClockUtils.formatClock(segment.endMinute))")
-                            .font(.title3.weight(.regular)).fixedSize()
-                        let wage = HStack(spacing: 4) {
-                            Text("時給")
-                            Text(yen(segment.hourlyWage))
-                        }.font(.subheadline).foregroundStyle(.secondary).fixedSize()
-                        ViewThatFits(in: .horizontal) {
-                            HStack(alignment: .firstTextBaseline) { time; Spacer(minLength: 12); wage }
-                            VStack(alignment: .leading, spacing: 4) { time; wage }
+            let isDark = colorScheme == .dark
+            let ink = isDark ? Color.white : Color(red: 0.12, green: 0.20, blue: 0.18)
+            let secondaryInk = isDark ? Color.white.opacity(0.62) : Color(red: 0.40, green: 0.47, blue: 0.44)
+            let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+            return HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .firstTextBaseline, spacing: 7) {
+                        Image(systemName: "briefcase").font(.caption2).foregroundStyle(accent)
+                        Text(format.employer).font(.subheadline.weight(.medium))
+                            .foregroundStyle(ink.opacity(0.85))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(format.segments.indices, id: \.self) { index in
+                            let segment = format.segments[index]
+                            VStack(alignment: .leading, spacing: 5) {
+                                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                    Text(ClockUtils.formatClock(segment.startMinute))
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(accent.opacity(0.65))
+                                        .accessibilityHidden(true)
+                                    Text(ClockUtils.formatClock(segment.endMinute))
+                                }
+                                .font(.title.weight(.regular))
+                                .foregroundStyle(ink)
+                                .lineLimit(1).minimumScaleFactor(0.7)
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(Text(verbatim: "\(ClockUtils.formatClock(segment.startMinute))–\(ClockUtils.formatClock(segment.endMinute))"))
+                                HStack(spacing: 5) {
+                                    Text("時給")
+                                    Text(yen(segment.hourlyWage))
+                                }
+                                .font(.caption).foregroundStyle(secondaryInk)
+                            }
+                        }
+                        if format.source.breakMinutes > 0 {
+                            Text("休憩\(format.source.breakMinutes)分").font(.caption).foregroundStyle(secondaryInk)
                         }
                     }
-                    if format.source.breakMinutes > 0 {
-                        Text("休憩\(format.source.breakMinutes)分").font(.caption).foregroundStyle(.secondary)
-                    }
                 }
-                HStack(spacing: 10) {
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: 8) {
                     Button { editingFormat = format } label: {
-                        Label("編集", systemImage: "pencil")
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                        VStack(spacing: 5) {
+                            Image(systemName: "pencil").font(.body)
+                            Text("編集").font(.caption2).lineLimit(1).minimumScaleFactor(0.7)
+                        }
+                        .frame(width: 48).frame(minHeight: 48)
+                        .contentShape(Rectangle())
                     }
                     .foregroundStyle(accent)
                     .accessibilityLabel(Text("編集") + Text(verbatim: "、\(format.employer)"))
                     Button(role: .destructive) { deletingFormat = format } label: {
-                        Label("削除", systemImage: "trash")
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(Color.red.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                        VStack(spacing: 5) {
+                            Image(systemName: "trash").font(.body)
+                            Text("削除").font(.caption2).lineLimit(1).minimumScaleFactor(0.7)
+                        }
+                        .frame(width: 48).frame(minHeight: 48)
+                        .contentShape(Rectangle())
                     }
-                    .foregroundStyle(.red)
+                    .foregroundStyle(secondaryInk)
                     .accessibilityLabel(Text("削除") + Text(verbatim: "、\(format.employer)"))
                 }
-                .font(.subheadline.weight(.medium))
                 .buttonStyle(.plain)
+                .padding(.horizontal, 7).padding(.vertical, 12)
+                .frame(maxHeight: .infinity)
+                .background(accent.opacity(isDark ? 0.025 : 0.015))
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(LinearGradient(colors: [accent.opacity(0.08), accent.opacity(0.55), accent.opacity(0.12)],
+                                             startPoint: .top, endPoint: .bottom))
+                        .frame(width: 1)
+                        .padding(.vertical, 16)
+                }
             }
-            .appCard()
+            .fixedSize(horizontal: false, vertical: true)
+            .background {
+                LinearGradient(colors: isDark
+                               ? [Color(red: 0.10, green: 0.13, blue: 0.14), Color(red: 0.045, green: 0.065, blue: 0.06)]
+                               : [.white, Color(red: 0.975, green: 0.99, blue: 0.985)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                    .overlay {
+                        RadialGradient(colors: [accent.opacity(isDark ? 0.16 : 0.085), .clear],
+                                       center: .topTrailing, startRadius: 0, endRadius: 220)
+                    }
+            }
+            .clipShape(shape)
+            .overlay {
+                shape.strokeBorder(LinearGradient(colors: isDark
+                                                 ? [.white.opacity(0.2), accent.opacity(0.2), .white.opacity(0.06)]
+                                                 : [.white, accent.opacity(0.17), accent.opacity(0.08)],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 0.75)
+            }
+            .shadow(color: .black.opacity(isDark ? 0.13 : 0.045), radius: 10, x: 0, y: 5)
             .accessibilityElement(children: .contain)
         }
     }
