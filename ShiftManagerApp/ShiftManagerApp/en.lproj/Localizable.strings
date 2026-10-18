@@ -731,6 +731,8 @@
 "変更はテンプレートだけに反映されます。登録済みのシフトは変わりません。" = "Changes apply only to the template. Recorded shifts stay unchanged.";
 "テンプレートの内容が変わりました。開き直して確認してください。" = "The template has changed. Reopen it to review the latest version.";
 "同じ内容のテンプレートが既にあります。" = "A template with the same settings already exists.";
+"勤務パターンを編集・削除できます。登録済みのシフトはそのまま残ります。" = "Edit or delete your shift patterns. Recorded shifts stay unchanged.";
+"表示中のテンプレートはありません。" = "There are no templates to display.";
 "シフトの内容が変わりました。もう一度確認してください。" = "The saved shifts changed. Please review again.";
 "勤務時間が重なっています。確認してから追加してください。" = "Shift times overlap. Please confirm before adding.";
 "更新する" = "Update";

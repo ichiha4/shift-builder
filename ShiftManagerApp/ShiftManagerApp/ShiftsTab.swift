@@ -15,6 +15,7 @@ struct ShiftsTab: View {
     @State private var selectedDate: String
     @State private var showAddSheet = false
     @State private var showTemplateSheet = false
+    @State private var showTemplateManager = false
     @State private var newlySavedTemplateKey: String?
     @State private var templateToDelete: ShiftFormat?
     @State private var editingTemplate: ShiftFormat?
@@ -143,16 +144,16 @@ struct ShiftsTab: View {
         UserDefaults.standard.set(Array(dismissedFormatKeys), forKey: "shiftmgr.dismissedShiftFormats")
     }
 
-    private func deleteFormat(_ format: ShiftFormat) {
+    private func deleteFormat(_ format: ShiftFormat) -> String? {
         if let id = format.templateID {
             store.deleteShiftTemplate(id: id)
             guard !store.shiftTemplates.contains(where: { $0.id == id }) else {
-                actionError = ActionError(title: "テンプレートを削除できません", message: "同期の状態を確認して、もう一度お試しください。")
-                return
+                return NSLocalizedString("同期の状態を確認して、もう一度お試しください。", comment: "")
             }
         }
         // History-backed patterns also leave the list without deleting recorded work.
         dismissFormat(format)
+        return nil
     }
 
     private func restoreFormats() {
@@ -225,7 +226,7 @@ struct ShiftsTab: View {
             }
             .onChange(of: requestedDate) { _, _ in selectRequestedDate() }
             .onChange(of: store.cloudDataReady) { _, ready in
-                if !ready { overlapRequest = nil; templateToDelete = nil; editingTemplate = nil }
+                if !ready { overlapRequest = nil; templateToDelete = nil; editingTemplate = nil; showTemplateManager = false }
             }
             .sheet(isPresented: $showAddSheet) {
                 ShiftFormView(date: selectedDate, existing: nil)
@@ -238,6 +239,15 @@ struct ShiftsTab: View {
                 }
                     .environmentObject(store)
                     .environmentObject(notifications)
+            }
+            .sheet(isPresented: $showTemplateManager) {
+                TemplateManagerView(formats: recentFormats, date: selectedDate,
+                                    onSave: { template, format in templateSaved(template, replacing: format) },
+                                    onDelete: deleteFormat)
+                    .environmentObject(store)
+                    .environmentObject(notifications)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(item: $editingTemplate) { format in
                 ShiftFormView(date: selectedDate, existing: format.source, isTemplate: true, existingTemplate: format.template) { template in
@@ -265,7 +275,9 @@ struct ShiftsTab: View {
             ), presenting: templateToDelete) { format in
                 Button("削除する", role: .destructive) {
                     templateToDelete = nil
-                    deleteFormat(format)
+                    if let message = deleteFormat(format) {
+                        actionError = ActionError(title: "テンプレートを削除できません", message: message)
+                    }
                 }
                 Button("キャンセル", role: .cancel) { templateToDelete = nil }
             } message: { format in
@@ -439,27 +451,146 @@ struct ShiftsTab: View {
             .buttonStyle(.plain)
 
             if !recentFormats.isEmpty {
-                Menu {
-                    Section("テンプレートを管理") {
-                        ForEach(recentFormats) { format in
-                            Menu {
-                                templateActions(format)
-                            } label: {
-                                Text(verbatim: "\(format.employer)・\(chipSummary(format.segments))")
-                            }
-                        }
-                    }
-                } label: {
+                Button { showTemplateManager = true } label: {
                     Image(systemName: "ellipsis")
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
                 .accessibilityLabel("テンプレートを管理")
             }
         }
         .fixedSize(horizontal: true, vertical: false)
+    }
+
+    /// The heading opens a readable list; each pattern has its own explicit actions.
+    private struct TemplateManagerView: View {
+        @EnvironmentObject private var store: ShiftStore
+        @EnvironmentObject private var notifications: NotificationLogStore
+        @Environment(\.dismiss) private var dismiss
+        @Environment(\.colorScheme) private var colorScheme
+        let formats: [ShiftFormat]
+        let date: String
+        let onSave: (ShiftTemplate, ShiftFormat) -> Void
+        let onDelete: (ShiftFormat) -> String?
+        @State private var editingFormat: ShiftFormat?
+        @State private var deletingFormat: ShiftFormat?
+        @State private var deletionError: String?
+
+        private var accent: Color {
+            colorScheme == .dark ? Color(red: 0.40, green: 0.91, blue: 0.73) : Color(red: 0.035, green: 0.44, blue: 0.33)
+        }
+
+        var body: some View {
+            NavigationStack {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 12) {
+                        Text("勤務パターンを編集・削除できます。登録済みのシフトはそのまま残ります。")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                            .padding(.bottom, 4)
+                        if formats.isEmpty {
+                            Text("表示中のテンプレートはありません。")
+                                .font(.subheadline).foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, minHeight: 100)
+                        }
+                        ForEach(formats) { format in
+                            templateRow(format)
+                        }
+                    }
+                    .padding(16)
+                    .readableColumn()
+                }
+                .background(Color(.systemGroupedBackground))
+                .navigationTitle("テンプレートを管理")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("閉じる") { dismiss() }
+                    }
+                }
+                .sheet(item: $editingFormat) { format in
+                    ShiftFormView(date: date, existing: format.source, isTemplate: true, existingTemplate: format.template) { template in
+                        onSave(template, format)
+                    }
+                        .environmentObject(store)
+                        .environmentObject(notifications)
+                }
+                .alert("テンプレートを削除しますか？", isPresented: Binding(
+                    get: { deletingFormat != nil },
+                    set: { if !$0 { deletingFormat = nil } }
+                ), presenting: deletingFormat) { format in
+                    Button("削除する", role: .destructive) {
+                        deletingFormat = nil
+                        deletionError = onDelete(format)
+                    }
+                    Button("キャンセル", role: .cancel) { deletingFormat = nil }
+                } message: { format in
+                    let segments = format.segments.map {
+                        "\(ClockUtils.formatClock($0.startMinute))–\(ClockUtils.formatClock($0.endMinute))  \(yen($0.hourlyWage))"
+                    }.joined(separator: "\n")
+                    Text(verbatim: "\(format.employer)\n\(segments)\n\n") + Text("登録済みのシフトは削除されません。")
+                }
+                .alert("テンプレートを削除できません", isPresented: Binding(
+                    get: { deletionError != nil },
+                    set: { if !$0 { deletionError = nil } }
+                )) {
+                    Button("閉じる", role: .cancel) { deletionError = nil }
+                } message: {
+                    Text(deletionError ?? "")
+                }
+            }
+        }
+
+        private func templateRow(_ format: ShiftFormat) -> some View {
+            VStack(alignment: .leading, spacing: 14) {
+                Label {
+                    Text(format.employer).font(.headline)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "briefcase").foregroundStyle(accent)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(format.segments.indices, id: \.self) { index in
+                        let segment = format.segments[index]
+                        let time = Text(verbatim: "\(ClockUtils.formatClock(segment.startMinute))–\(ClockUtils.formatClock(segment.endMinute))")
+                            .font(.title3.weight(.regular)).fixedSize()
+                        let wage = HStack(spacing: 4) {
+                            Text("時給")
+                            Text(yen(segment.hourlyWage))
+                        }.font(.subheadline).foregroundStyle(.secondary).fixedSize()
+                        ViewThatFits(in: .horizontal) {
+                            HStack(alignment: .firstTextBaseline) { time; Spacer(minLength: 12); wage }
+                            VStack(alignment: .leading, spacing: 4) { time; wage }
+                        }
+                    }
+                    if format.source.breakMinutes > 0 {
+                        Text("休憩\(format.source.breakMinutes)分").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                HStack(spacing: 10) {
+                    Button { editingFormat = format } label: {
+                        Label("編集", systemImage: "pencil")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    .foregroundStyle(accent)
+                    .accessibilityLabel(Text("編集") + Text(verbatim: "、\(format.employer)"))
+                    Button(role: .destructive) { deletingFormat = format } label: {
+                        Label("削除", systemImage: "trash")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(Color.red.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    .foregroundStyle(.red)
+                    .accessibilityLabel(Text("削除") + Text(verbatim: "、\(format.employer)"))
+                }
+                .font(.subheadline.weight(.medium))
+                .buttonStyle(.plain)
+            }
+            .appCard()
+            .accessibilityElement(children: .contain)
+        }
     }
 
     private var formatQuickAddRow: some View {
