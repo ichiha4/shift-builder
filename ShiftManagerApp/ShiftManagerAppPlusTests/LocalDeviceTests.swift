@@ -350,6 +350,51 @@ final class ShiftTemplateStoreTests: XCTestCase {
         XCTAssertEqual(store.shifts, [second])
     }
 
+    func testEditingTemplateKeepsItsIdentityAndRecordedShiftsAfterReopening() async throws {
+        let store = openStore(), original = template()
+        XCTAssertTrue(store.saveShiftTemplate(original))
+        let recorded = original.shift(on: "2026-10-20")
+        store.addShift(recorded)
+        let recordedPay = PayCalculation.pay(for: recorded, classifications: store.classifications)
+        var pattern = original.pattern
+        pattern.segments[0] = WorkSegment(startMinute: 600, endMinute: 960, hourlyWage: 1400.75)
+        pattern.breakMinutes = 15; pattern.breakStartMinute = 720
+        pattern.transport = 300.5
+        XCTAssertTrue(store.updateShiftTemplate(original, pattern: pattern))
+        let expected = ShiftTemplate(id: original.id, pattern: pattern)
+        XCTAssertEqual(store.shiftTemplates, [expected])
+        XCTAssertEqual(store.shifts, [recorded])
+        XCTAssertEqual(PayCalculation.pay(for: recorded, classifications: store.classifications), recordedPay)
+        try await waitForSaved(store)
+        store.detachUser()
+        let reopened = openStore()
+        XCTAssertEqual(reopened.shiftTemplates, [expected])
+        XCTAssertEqual(reopened.shifts, [recorded])
+    }
+
+    func testEditingTemplateDoesNotOverwriteAnotherMatchingPattern() {
+        let store = openStore(), original = template(), other = template(start: 1020, end: 1320)
+        XCTAssertTrue(store.saveShiftTemplate(original))
+        XCTAssertTrue(store.saveShiftTemplate(other))
+        XCTAssertFalse(store.updateShiftTemplate(original, pattern: other.pattern))
+        XCTAssertEqual(store.shiftTemplates, [original, other])
+        XCTAssertTrue(store.shifts.isEmpty)
+    }
+
+    func testStaleTemplateEditCannotOverwriteChangesOrRecreateDeletedTemplate() {
+        let store = openStore(), original = template()
+        XCTAssertTrue(store.saveShiftTemplate(original))
+        var changed = original.pattern
+        changed.transport = 999
+        XCTAssertTrue(store.updateShiftTemplate(original, pattern: changed))
+        let updated = ShiftTemplate(id: original.id, pattern: changed)
+        XCTAssertFalse(store.updateShiftTemplate(original, pattern: original.pattern))
+        XCTAssertEqual(store.shiftTemplates, [updated])
+        store.deleteShiftTemplate(id: original.id)
+        XCTAssertFalse(store.updateShiftTemplate(updated, pattern: original.pattern))
+        XCTAssertTrue(store.shiftTemplates.isEmpty)
+    }
+
     func testEmployerRenameUpdatesTemplateAndAccountWipeClearsItsLocalCopy() async throws {
         let store = openStore()
         var profile = EmployerProfile(name: "Template Cafe", defaultWage: 1350.5)

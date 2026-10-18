@@ -410,6 +410,18 @@ final class ShiftStore: ObservableObject {
         persist(shiftTemplates, key: Key.shiftTemplates)
     }
 
+    /// Replace the saved pattern while leaving every scheduled/recorded shift untouched.
+    @discardableResult
+    func updateShiftTemplate(_ original: ShiftTemplate, pattern: Shift) -> Bool {
+        guard cloudDataReady, !cloudSyncSuspended,
+              let index = shiftTemplates.firstIndex(of: original) else { return false }
+        let updated = ShiftTemplate(id: original.id, pattern: pattern)
+        guard !shiftTemplates.contains(where: { $0.id != original.id && $0.fingerprint == updated.fingerprint }) else { return false }
+        shiftTemplates[index] = updated
+        persist(shiftTemplates, key: Key.shiftTemplates)
+        return shiftTemplates.contains(updated)
+    }
+
     /// Capture the exact candidate, conflicts and account session shown for confirmation.
     func prepareShiftSave(_ shift: Shift, editing: Bool = false) throws -> ShiftSaveRequest {
         guard cloudDataReady, !cloudSyncSuspended else { throw ShiftSaveError.unavailable }

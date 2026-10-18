@@ -724,6 +724,13 @@
 "時間重複・確認して追加" = "Time overlap; review to add";
 "登録済みのシフトと時間が重なります。タップすると追加前に確認できます。" = "This overlaps a saved shift. Tap to review before adding.";
 "この日は追加済みです" = "Already added for this day";
+"テンプレートを削除できません" = "Cannot delete template";
+"追加済みです。長押しで編集・削除できます。" = "Already added. Touch and hold to edit or delete the template.";
+"編集" = "Edit";
+"テンプレートを編集" = "Edit template";
+"変更はテンプレートだけに反映されます。登録済みのシフトは変わりません。" = "Changes apply only to the template. Recorded shifts stay unchanged.";
+"テンプレートの内容が変わりました。開き直して確認してください。" = "The template has changed. Reopen it to review the latest version.";
+"同じ内容のテンプレートが既にあります。" = "A template with the same settings already exists.";
 "シフトの内容が変わりました。もう一度確認してください。" = "The saved shifts changed. Please review again.";
 "勤務時間が重なっています。確認してから追加してください。" = "Shift times overlap. Please confirm before adding.";
 "更新する" = "Update";

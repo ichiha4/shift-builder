@@ -9,6 +9,7 @@ struct ShiftFormView: View {
     @State private var date: String
     let existing: Shift?
     let isTemplate: Bool
+    let existingTemplate: ShiftTemplate?
     let onTemplateSaved: ((ShiftTemplate) -> Void)?
 
     @State private var employer: String
@@ -37,10 +38,11 @@ struct ShiftFormView: View {
         var wageText: String
     }
 
-    init(date: String, existing: Shift?, isTemplate: Bool = false, onTemplateSaved: ((ShiftTemplate) -> Void)? = nil) {
+    init(date: String, existing: Shift?, isTemplate: Bool = false, existingTemplate: ShiftTemplate? = nil, onTemplateSaved: ((ShiftTemplate) -> Void)? = nil) {
         _date = State(initialValue: date)
         self.existing = existing
         self.isTemplate = isTemplate
+        self.existingTemplate = existingTemplate
         self.onTemplateSaved = onTemplateSaved
         if let s = existing {
             _employer = State(initialValue: s.employer)
@@ -135,6 +137,9 @@ struct ShiftFormView: View {
                 } header: {
                     Text("勤務先")
                 } footer: {
+                    if isTemplate, existing != nil {
+                        Text("変更はテンプレートだけに反映されます。登録済みのシフトは変わりません。")
+                    }
                     if matchingProfile == nil, !employer.trimmingCharacters(in: .whitespaces).isEmpty {
                         Text("設定すると、給与タブにこの勤務先の支給予定が表示されるようになります。")
                     }
@@ -202,7 +207,7 @@ struct ShiftFormView: View {
                     }
                 }
             }
-            .navigationTitle(isTemplate ? "テンプレートを作成" : (existing == nil ? "シフトを追加" : "シフトを編集"))
+            .navigationTitle(isTemplate ? (existing == nil ? "テンプレートを作成" : "テンプレートを編集") : (existing == nil ? "シフトを追加" : "シフトを編集"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -331,8 +336,19 @@ struct ShiftFormView: View {
         if isTemplate {
             let validationErrors = Validation.validateShift(candidate, existing: [])
             guard validationErrors.isEmpty else { errors = validationErrors; return }
-            let template = ShiftTemplate(pattern: candidate)
-            guard store.saveShiftTemplate(template) else {
+            let template = ShiftTemplate(id: existingTemplate?.id ?? UUID().uuidString, pattern: candidate)
+            if let original = existingTemplate {
+                guard store.shiftTemplates.contains(original) else {
+                    errors = ["テンプレートの内容が変わりました。開き直して確認してください。"]
+                    return
+                }
+                guard !store.shiftTemplates.contains(where: { $0.id != original.id && $0.fingerprint == template.fingerprint }) else {
+                    errors = ["同じ内容のテンプレートが既にあります。"]
+                    return
+                }
+            }
+            let saved = existingTemplate.map { store.updateShiftTemplate($0, pattern: candidate) } ?? store.saveShiftTemplate(template)
+            guard saved else {
                 errors = ["同期の状態を確認して、もう一度お試しください。"]
                 return
             }

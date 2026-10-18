@@ -17,6 +17,7 @@ struct ShiftsTab: View {
     @State private var showTemplateSheet = false
     @State private var newlySavedTemplateKey: String?
     @State private var templateToDelete: ShiftFormat?
+    @State private var editingTemplate: ShiftFormat?
     @State private var editingShift: Shift?
     @State private var overlapRequest: ShiftSaveRequest?
     @State private var dismissedFormatKeys: Set<String> = Set(
@@ -77,7 +78,8 @@ struct ShiftsTab: View {
         let employer: String
         let segments: [WorkSegment]
         let source: Shift
-        let templateID: String?
+        let template: ShiftTemplate?
+        var templateID: String? { template?.id }
     }
 
     /// Reuse recorded patterns without a second setup flow. Stable ordering keeps a template
@@ -88,12 +90,12 @@ struct ShiftsTab: View {
             let shift = template.pattern
             let key = Self.formatKey(shift)
             seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments,
-                                    source: shift, templateID: template.id)
+                                    source: shift, template: template)
         }
         for shift in (store.shifts + store.undoableDeletedShifts).sorted(by: { $0.date > $1.date }) {
             let key = Self.formatKey(shift)
             if seen[key] == nil {
-                seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments, source: shift, templateID: nil)
+                seen[key] = ShiftFormat(id: key, employer: shift.employer, segments: shift.segments, source: shift, template: nil)
             }
         }
         return seen.values
@@ -141,9 +143,38 @@ struct ShiftsTab: View {
         UserDefaults.standard.set(Array(dismissedFormatKeys), forKey: "shiftmgr.dismissedShiftFormats")
     }
 
+    private func deleteFormat(_ format: ShiftFormat) {
+        if let id = format.templateID {
+            store.deleteShiftTemplate(id: id)
+            guard !store.shiftTemplates.contains(where: { $0.id == id }) else {
+                actionError = ActionError(title: "テンプレートを削除できません", message: "同期の状態を確認して、もう一度お試しください。")
+                return
+            }
+        }
+        // History-backed patterns also leave the list without deleting recorded work.
+        dismissFormat(format)
+    }
+
     private func restoreFormats() {
         dismissedFormatKeys.removeAll()
         UserDefaults.standard.removeObject(forKey: "shiftmgr.dismissedShiftFormats")
+    }
+
+    private func templateSaved(_ template: ShiftTemplate, replacing format: ShiftFormat? = nil) {
+        if let format, format.id != template.fingerprint { dismissedFormatKeys.insert(format.id) }
+        dismissedFormatKeys.remove(template.fingerprint)
+        UserDefaults.standard.set(Array(dismissedFormatKeys), forKey: "shiftmgr.dismissedShiftFormats")
+        newlySavedTemplateKey = template.fingerprint
+    }
+
+    @ViewBuilder
+    private func templateActions(_ format: ShiftFormat) -> some View {
+        Button { editingTemplate = format } label: {
+            Label("編集", systemImage: "pencil")
+        }
+        Button(role: .destructive) { templateToDelete = format } label: {
+            Label("削除", systemImage: "trash")
+        }
     }
 
     var body: some View {
@@ -194,7 +225,7 @@ struct ShiftsTab: View {
             }
             .onChange(of: requestedDate) { _, _ in selectRequestedDate() }
             .onChange(of: store.cloudDataReady) { _, ready in
-                if !ready { overlapRequest = nil }
+                if !ready { overlapRequest = nil; templateToDelete = nil; editingTemplate = nil }
             }
             .sheet(isPresented: $showAddSheet) {
                 ShiftFormView(date: selectedDate, existing: nil)
@@ -203,9 +234,14 @@ struct ShiftsTab: View {
             }
             .sheet(isPresented: $showTemplateSheet) {
                 ShiftFormView(date: selectedDate, existing: nil, isTemplate: true) { template in
-                    dismissedFormatKeys.remove(template.fingerprint)
-                    UserDefaults.standard.set(Array(dismissedFormatKeys), forKey: "shiftmgr.dismissedShiftFormats")
-                    newlySavedTemplateKey = template.fingerprint
+                    templateSaved(template)
+                }
+                    .environmentObject(store)
+                    .environmentObject(notifications)
+            }
+            .sheet(item: $editingTemplate) { format in
+                ShiftFormView(date: selectedDate, existing: format.source, isTemplate: true, existingTemplate: format.template) { template in
+                    templateSaved(template, replacing: format)
                 }
                     .environmentObject(store)
                     .environmentObject(notifications)
@@ -228,13 +264,13 @@ struct ShiftsTab: View {
                 set: { if !$0 { templateToDelete = nil } }
             ), presenting: templateToDelete) { format in
                 Button("削除する", role: .destructive) {
-                    if let id = format.templateID { store.deleteShiftTemplate(id: id) }
-                    dismissFormat(format)
                     templateToDelete = nil
+                    deleteFormat(format)
                 }
                 Button("キャンセル", role: .cancel) { templateToDelete = nil }
-            } message: { _ in
-                Text("登録済みのシフトは削除されません。")
+            } message: { format in
+                Text(verbatim: "\(format.employer)・\(chipSummary(format.segments))\n\n")
+                    + Text("登録済みのシフトは削除されません。")
             }
             .alert("勤務時間が重なっています", isPresented: Binding(
                 get: { overlapRequest != nil },
@@ -366,7 +402,7 @@ struct ShiftsTab: View {
         .appCard()
     }
 
-    /// Keep exact template double taps disabled; different overlapping patterns ask first.
+    /// Exact template taps do nothing after adding; management stays available.
     private func isFormatAdded(_ format: ShiftFormat) -> Bool {
         dayShifts.contains { Self.formatKey($0) == format.id }
     }
@@ -402,16 +438,14 @@ struct ShiftsTab: View {
             }
             .buttonStyle(.plain)
 
-            if !store.shiftTemplates.isEmpty {
+            if !recentFormats.isEmpty {
                 Menu {
-                    Section("削除するテンプレート") {
-                        ForEach(store.shiftTemplates) { template in
-                            Button(role: .destructive) {
-                                let pattern = template.pattern
-                                templateToDelete = ShiftFormat(id: template.fingerprint, employer: pattern.employer,
-                                                              segments: pattern.segments, source: pattern, templateID: template.id)
+                    Section("テンプレートを管理") {
+                        ForEach(recentFormats) { format in
+                            Menu {
+                                templateActions(format)
                             } label: {
-                                Label("\(template.pattern.employer)・\(chipSummary(template.pattern.segments))", systemImage: "trash")
+                                Text(verbatim: "\(format.employer)・\(chipSummary(format.segments))")
                             }
                         }
                     }
@@ -583,19 +617,20 @@ struct ShiftsTab: View {
             .contentShape(shape)
         }
         .buttonStyle(TemplateCardButtonStyle(reduceMotion: reduceMotion))
-        .disabled(added)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityAddTraits(added ? [.isSelected] : [])
         .accessibilityLabel("\(format.employer)、\(chipSummary(format.segments))")
         .accessibilityValue(added ? Text("追加済み") : (overlaps ? Text("時間重複・確認して追加") : Text("")))
-        .accessibilityHint(added ? Text("") : (overlaps ? Text("登録済みのシフトと時間が重なります。タップすると追加前に確認できます。") : Text("タップでこの日に追加")))
+        .accessibilityHint(added ? Text("追加済みです。長押しで編集・削除できます。") : (overlaps ? Text("登録済みのシフトと時間が重なります。タップすると追加前に確認できます。") : Text("タップでこの日に追加")))
         .contextMenu {
-            Button(role: .destructive) {
-                dismissFormat(format)
-            } label: {
-                Label("このテンプレートを非表示", systemImage: "eye.slash")
-            }
+            templateActions(format)
+        }
+        .accessibilityAction(named: Text("テンプレートを編集")) {
+            editingTemplate = format
+        }
+        .accessibilityAction(named: Text("テンプレートを削除")) {
+            templateToDelete = format
         }
     }
 
@@ -610,7 +645,7 @@ struct ShiftsTab: View {
         }
     }
 
-    /// Keep disabled status legible; a small press response confirms the whole card is tappable.
+    /// A small press response keeps the card's primary and management actions consistent.
     private struct TemplateCardButtonStyle: ButtonStyle {
         let reduceMotion: Bool
 
