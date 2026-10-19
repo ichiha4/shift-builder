@@ -141,7 +141,7 @@ struct ShiftFormView: View {
                         Text("変更はテンプレートだけに反映されます。登録済みのシフトは変わりません。")
                     }
                     if matchingProfile == nil, !employer.trimmingCharacters(in: .whitespaces).isEmpty {
-                        Text("設定すると、給与タブにこの勤務先の支給予定が表示されるようになります。")
+                        Text("設定すると、ホームと給与タブにこの勤務先の支給予定が表示されます。")
                     }
                 }
 

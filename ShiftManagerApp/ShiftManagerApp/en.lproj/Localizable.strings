@@ -309,7 +309,10 @@
 "削除するテンプレート" = "Choose a template to delete";
 "テンプレートを削除しますか？" = "Delete this template?";
 "登録済みのシフトは削除されません。" = "Your saved shifts will stay.";
-"いつもの勤務先・時間・時給を、日付なしで保存できます。" = "Save your usual employer, hours and rate without scheduling a day.";
+"勤務先・時間・時給を日付なしで保存。作成後は、日付を選んでタップするだけで追加できます。" = "Save your employer, hours and rate without scheduling a day. Then choose a date and tap the template to add a shift.";
+"締め日・給料日を設定すると、登録したシフトから給与予定を計算できます。" = "Set the closing date and payday to calculate expected pay from your saved shifts.";
+"給料日が未設定の勤務先のシフトは、給与予定に含まれていません。" = "Shifts for employers without a configured payday are not included in expected pay.";
+"設定すると、ホームと給与タブにこの勤務先の支給予定が表示されます。" = "Set this up to see this employer's expected pay on Home and the Pay tab.";
 "テンプレートの給与目安（控除前）" = "Template pay estimate (before deductions)";
 "タップでこの日に追加" = "Tap to add to this day";
 "追加済み" = "Added";

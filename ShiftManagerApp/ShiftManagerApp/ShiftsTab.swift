@@ -671,7 +671,7 @@ struct ShiftsTab: View {
             }
 
             if recentFormats.isEmpty {
-                Text("いつもの勤務先・時間・時給を、日付なしで保存できます。")
+                Text("勤務先・時間・時給を日付なしで保存。作成後は、日付を選んでタップするだけで追加できます。")
                     .font(.subheadline).foregroundStyle(.secondary)
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)

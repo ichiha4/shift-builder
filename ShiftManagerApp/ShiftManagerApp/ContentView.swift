@@ -144,7 +144,7 @@ private struct OverviewTab: View {
                     if store.employerProfiles.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("まず勤務先を登録", systemImage: "building.2.fill").font(.headline)
-                            Text("名前と時給を登録すると、次から入力を省けます。")
+                            Text("締め日・給料日を設定すると、登録したシフトから給与予定を計算できます。")
                                 .font(.subheadline).foregroundStyle(.secondary)
                             Button("勤務先を登録する") { showEmployerForm = true }
                                 .buttonStyle(.borderedProminent)
@@ -186,7 +186,9 @@ private struct OverviewTab: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }.appCard()
                     } else {
-                        Text("来月支給されるシフトを登録すると、給与予定が表示されます。")
+                        Text(LocalizedStringKey(hasUnconfiguredEmployer
+                             ? "給料日が未設定の勤務先のシフトは、給与予定に含まれていません。"
+                             : "来月支給されるシフトを登録すると、給与予定が表示されます。"))
                             .font(.subheadline).foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading).appCard()
                     }
