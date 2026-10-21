@@ -71,7 +71,7 @@
 | 同期・認証 | Firebase Auth、Firestore、Google Sign-In、Sign in with Apple |
 | 検証 | XCTest、Swift Packageの単体テスト、Firestore Emulator用テスト |
 
-設計は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、確認範囲は [docs/VALIDATION.md](docs/VALIDATION.md) にまとめています。
+設計は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、機能ごとの編集先は [保守ガイド](docs/MAINTENANCE.md)、確認範囲は [docs/VALIDATION.md](docs/VALIDATION.md) にまとめています。
 
 ## ローカルデモを動かす
 
@@ -97,6 +97,8 @@ open ShiftManagerApp/ShiftManagerApp.xcodeproj
 cd PayrollEngine
 swift test --jobs 1
 ```
+
+2026-10-21〜22のコード整理後、公開用コピーのSwift Package全181件と、元アプリのLocalDevice選択テスト31件が成功しました。通常Debug・LocalDeviceの両構成でビルドが通り、専用の空のシミュレータでホーム・年収詳細・テンプレート作成とワンタップ追加・テンプレート管理・給与詳細を確認しています。画面の役割を6ファイルへ分け、デザイン・操作・計算・保存形式は維持しました。
 
 2026-10-17に、公開用コピーの計算・同期パッケージ175件、元アプリのLocalDevice選択テスト28件が成功しました。重複の確認・承認後の保存、キャンセル時の記録維持、確認中の変更検出、承認済みの重複の復元に加え、給与記録とテンプレートの保存を確認しています。Firestoreルールの直近の結果は12件成功です。今回の変更ではルールや保存形式を変えておらず、エミュレータは再実行していません。
 

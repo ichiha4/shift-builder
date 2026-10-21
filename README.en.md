@@ -58,10 +58,12 @@ cd PayrollEngine
 swift test --jobs 1
 ```
 
+After the October 21–22, 2026 refactor, all 181 Swift Package tests and 31 selected LocalDevice iOS tests passed. Both normal Debug and LocalDevice builds succeeded. An empty, dedicated simulator was used to check Home, annual income details, template creation and one-tap entry, template management, and pay details. Six extracted UI files keep responsibilities easier to locate while preserving the existing design, behavior, calculations, and storage format.
+
 On October 17, 2026, all 175 calculation/sync-package tests and 28 selected iOS tests passed. Coverage includes overlap confirmation, saving only after consent, cancellation without changes, detecting intervening changes, restoring approved overlaps, payslip records, and saved templates. The latest Firestore Emulator rules result remains 12 passed; rules and storage formats did not change, so those tests were not rerun for this feature. Previously recorded full iOS XCTest results were 38 passed and 4 Firestore Emulator tests skipped. See [validation scope](docs/VALIDATION.md) for current build and simulator checks and remaining limitations.
 
 Production configuration, signing identifiers, credentials, build outputs, and backups are excluded. App Store Connect, TestFlight/Sandbox, and end-to-end real-device verification remain unfinished.
 
 On October 19, 2026, all 7 template persistence tests passed for the edit/delete update, including reopening edited templates, keeping recorded shifts and pay intact, and rejecting duplicate patterns and stale edits.
 
-Further documentation is in Japanese: [UI and UX](docs/DESIGN.md), [architecture](docs/ARCHITECTURE.md), [product direction](docs/PRODUCT_DECISION.md), and [data handling](docs/PRIVACY.md).
+Further documentation is in Japanese: [UI and UX](docs/DESIGN.md), [architecture](docs/ARCHITECTURE.md), [maintenance guide](docs/MAINTENANCE.md), [product direction](docs/PRODUCT_DECISION.md), and [data handling](docs/PRIVACY.md).

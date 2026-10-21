@@ -14,6 +14,16 @@ release-tests/               Firestoreルールのエミュレータテスト
 firestore.rules             アカウント単位のアクセスと同期書き込みの検証
 ```
 
+## 画面ファイルの分担
+
+通常画面は1ファイル1責務を目安に分けています。各ファイルの詳しい編集先は `docs/MAINTENANCE.md` を参照してください。
+
+- `ContentView.swift`: 3タブの土台と、同期完了まで編集を止める表示だけを持ちます。
+- `OverviewTab.swift`: ホーム。`PaydayBanner.swift` は給料日の通知カードと `PaydayPrompt`、`ActualPaySheet.swift` は給与明細の入力シートです。`ActualPaySheet` はホーム・給与・年収の壁の各画面から使います。
+- `ShiftsTab.swift`: 日付選択・テンプレートのタップ追加・重複確認・削除の取り消し。`TemplateManagerView.swift` は `ShiftsTab` の入れ子型としてテンプレート管理一覧を持ち、`ShiftsTab.ShiftFormat` を共有します。
+- `WageTab.swift`: 支給月ごとの給与と控除。`WageDetailView.swift` は計算の詳細画面です。
+- `RecordedIncomeWallView.swift`: 現在使う、記録した給与明細による年収の壁の表示。`IncomeWallView.swift` には共通の `IncomeWallSettings` と、入口を外した以前の年収予測の試作を残しています。
+
 ## 現在の通常導線
 
 `ContentView` はホーム・シフト・給与の3タブです。ホームからも日付選択へつなぎ、`ShiftsTab.quickAdd` が選択日で再生成した勤務を検証・保存します。`ShiftTemplate` は日付・実勤務ID・法定休日指定を除いたパターンを独立して保存し、勤務履歴の候補と統合して表示します。同じ勤務先でも時間や条件が違えば別パターンです。テンプレート作成時は日付を求めず、実勤務や給与予定には含めません。日付への追加時に `Validation.reviewShift` が入力エラーと他の勤務との重複を分けます。入力エラーは保存せず、他の勤務との重複は本人の確認後に許可します。`prepareShiftSave` が内容・重複相手・アカウントのセッションを保持し、`saveReviewedShift` が保存直前に確認します。確認中の別アカウントへの切り替え、新しい重複、相手の変更を古い確認で許可しません。手入力・編集も共通の保存処理を通り、確認画面のキャンセルでは記録を作りません。

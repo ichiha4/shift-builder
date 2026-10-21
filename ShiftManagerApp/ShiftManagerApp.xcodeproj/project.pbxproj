@@ -52,6 +52,12 @@
 		AD20261005000400000000BB /* ShiftPhotoReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD20261005000400000000AA /* ShiftPhotoReaderTests.swift */; };
 		AE20261006000100000000BB /* LocalDeviceTestTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE20261006000100000000AA /* LocalDeviceTestTransport.swift */; };
 		AE20261006000200000000BB /* LocalDeviceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE20261006000200000000AA /* LocalDeviceTests.swift */; };
+		AF20261021000100000000BB /* OverviewTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF20261021000100000000AA /* OverviewTab.swift */; };
+		AF20261021000200000000BB /* PaydayBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF20261021000200000000AA /* PaydayBanner.swift */; };
+		AF20261021000300000000BB /* ActualPaySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF20261021000300000000AA /* ActualPaySheet.swift */; };
+		AF20261021000400000000BB /* WageDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF20261021000400000000AA /* WageDetailView.swift */; };
+		AF20261021000500000000BB /* TemplateManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF20261021000500000000AA /* TemplateManagerView.swift */; };
+		AF20261021000600000000BB /* RecordedIncomeWallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF20261021000600000000AA /* RecordedIncomeWallView.swift */; };
 		C63CFEC1C75F4259A3039D4D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C94B2C75A4E240F8A7B8FB22 /* ContentView.swift */; };
 		C8EE70AAC0D342C09D0ABD29 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 6B9923A952864F77A05FFD2D /* FirebaseFirestore */; };
 		D0DC779C66B84FA2B4BBE6A6 /* ShiftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD36D195739A4EECA56E9FB1 /* ShiftStore.swift */; };
@@ -113,6 +119,12 @@
 		AD20261005000400000000AA /* ShiftPhotoReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiftPhotoReaderTests.swift; sourceTree = "<group>"; };
 		AE20261006000100000000AA /* LocalDeviceTestTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDeviceTestTransport.swift; sourceTree = "<group>"; };
 		AE20261006000200000000AA /* LocalDeviceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDeviceTests.swift; sourceTree = "<group>"; };
+		AF20261021000100000000AA /* OverviewTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewTab.swift; sourceTree = "<group>"; };
+		AF20261021000200000000AA /* PaydayBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaydayBanner.swift; sourceTree = "<group>"; };
+		AF20261021000300000000AA /* ActualPaySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActualPaySheet.swift; sourceTree = "<group>"; };
+		AF20261021000400000000AA /* WageDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WageDetailView.swift; sourceTree = "<group>"; };
+		AF20261021000500000000AA /* TemplateManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateManagerView.swift; sourceTree = "<group>"; };
+		AF20261021000600000000AA /* RecordedIncomeWallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordedIncomeWallView.swift; sourceTree = "<group>"; };
 		BC914935CA71499E897A2D45 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
 		C94B2C75A4E240F8A7B8FB22 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D3A61C2C9C8B4C6A9A0E1F52 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
@@ -200,6 +212,9 @@
 				AE20261006000100000000AA /* LocalDeviceTestTransport.swift */,
 				409D3EAAF5934C0F9991AD12 /* ShiftManagerAppApp.swift */,
 				C94B2C75A4E240F8A7B8FB22 /* ContentView.swift */,
+				AF20261021000100000000AA /* OverviewTab.swift */,
+				AF20261021000200000000AA /* PaydayBanner.swift */,
+				AF20261021000300000000AA /* ActualPaySheet.swift */,
 				DD36D195739A4EECA56E9FB1 /* ShiftStore.swift */,
 				AC20261003000200000000AA /* SyncStatusView.swift */,
 				AC20261003000100000000AA /* CloudSyncTransport.swift */,
@@ -207,7 +222,9 @@
 				4E903750021D41A9A45018F7 /* CalendarMonthView.swift */,
 				8F4462E1350747F6ADF82A30 /* ShiftFormView.swift */,
 				350C4AE9FEB346D2A1ED5F08 /* ShiftsTab.swift */,
+				AF20261021000500000000AA /* TemplateManagerView.swift */,
 				1F6A1EDFEF544BD8A7F275DD /* WageTab.swift */,
+				AF20261021000400000000AA /* WageDetailView.swift */,
 				A4A3F3171E394BE595F640E9 /* ExpensesTab.swift */,
 				51CB4EC42FAE4EE28E534547 /* SettingsView.swift */,
 				418E73D13D71406992C2D491 /* NotificationLogStore.swift */,
@@ -224,6 +241,7 @@
 				E0A5C0ACEBF24193BB2D8722 /* Assets.xcassets */,
 				A1B2C3D40002AAAA0002BBBB /* PrivacyInfo.xcprivacy */,
 				A1B2C3D40006AAAA0006BBBB /* IncomeWallView.swift */,
+				AF20261021000600000000AA /* RecordedIncomeWallView.swift */,
 				AB20261001000400000000AA /* PlanningViews.swift */,
 				AD20261005000300000000AA /* ShiftPhotoImportView.swift */,
 				AD20261005000200000000AA /* ShiftPhotoReader.swift */,
@@ -356,6 +374,9 @@
 				AE20261006000100000000BB /* LocalDeviceTestTransport.swift in Sources */,
 				A35CDD950C0A4E25AE72E3D5 /* ShiftManagerAppApp.swift in Sources */,
 				C63CFEC1C75F4259A3039D4D /* ContentView.swift in Sources */,
+				AF20261021000100000000BB /* OverviewTab.swift in Sources */,
+				AF20261021000200000000BB /* PaydayBanner.swift in Sources */,
+				AF20261021000300000000BB /* ActualPaySheet.swift in Sources */,
 				D0DC779C66B84FA2B4BBE6A6 /* ShiftStore.swift in Sources */,
 				AC20261003000300000000BB /* AccountSync.swift in Sources */,
 				AD20261005000100000000BB /* ShiftImport.swift in Sources */,
@@ -365,7 +386,9 @@
 				9E33F21326D44AEEB4D58C05 /* CalendarMonthView.swift in Sources */,
 				475F5FFD62BF4AF0AA322BFF /* ShiftFormView.swift in Sources */,
 				0A3E55AFE112445A860464FB /* ShiftsTab.swift in Sources */,
+				AF20261021000500000000BB /* TemplateManagerView.swift in Sources */,
 				9EB30417B89F4F458EF9D5DC /* WageTab.swift in Sources */,
+				AF20261021000400000000BB /* WageDetailView.swift in Sources */,
 				353DAD893D9F492EA543D4D4 /* ExpensesTab.swift in Sources */,
 				16176CBAECC64C3385C9297A /* SettingsView.swift in Sources */,
 				83F633731BFF4E8CA121BC59 /* NotificationLogStore.swift in Sources */,
@@ -382,6 +405,7 @@
 				647AF06F4C3A4B1BBCC9E09C /* Aggregation.swift in Sources */,
 				A1B2C3D40003AAAA0003BBBB /* IncomeWalls.swift in Sources */,
 				A1B2C3D40005AAAA0005BBBB /* IncomeWallView.swift in Sources */,
+				AF20261021000600000000BB /* RecordedIncomeWallView.swift in Sources */,
 				AB20261001000400000000BB /* PlanningViews.swift in Sources */,
 				AD20261005000300000000BB /* ShiftPhotoImportView.swift in Sources */,
 				AD20261005000200000000BB /* ShiftPhotoReader.swift in Sources */,

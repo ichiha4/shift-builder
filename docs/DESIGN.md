@@ -52,7 +52,7 @@
 
 上限は家族の扶養など本人の条件に合わせて設定します。健康保険の扶養判定は将来の収入見込み等が関係するため、この暦年の残り表示で「安全」とは判定しません。入力金額の根拠：[国税庁・給与所得となるもの](https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2508.htm)、[給与所得](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1400.htm)。健康保険の基準との違い：[日本年金機構](https://www.nenkin.go.jp/oshirase/taisetu/jigyosho/2026/202605/0501.html)。
 
-実装は [ContentView.swift](../ShiftManagerApp/ShiftManagerApp/ContentView.swift)、[IncomeWallView.swift](../ShiftManagerApp/ShiftManagerApp/IncomeWallView.swift) の `RecordedIncomeWallCard` と `RecordedIncomeWallDetailView`。以前の詳細な税・年収予測画面は開発履歴として残し、現在の通常導線では使用しません。
+実装は [OverviewTab.swift](../ShiftManagerApp/ShiftManagerApp/OverviewTab.swift)、[RecordedIncomeWallView.swift](../ShiftManagerApp/ShiftManagerApp/RecordedIncomeWallView.swift) の `RecordedIncomeWallCard` と `RecordedIncomeWallDetailView`。以前の詳細な税・年収予測画面は開発履歴として残し、現在の通常導線では使用しません。
 
 ## 初回の入力を減らす
 
